@@ -1,0 +1,92 @@
+<script>
+/* ===== Certificates, chain of command, announcements, recruitment, settings ===== */
+const certMime = m => ({ 'application/pdf': 'PDF', 'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP' }[m] || '');
+route('/certificates', async (p, q, id) => {
+  loadingShell('/certificates', 'Certificates');
+  const d = await A('certificates.list', { search: q.search, page: q.page }); if (!current(id)) return;
+  mount(shell('/certificates', 'Certificates', '', '<div class="toolbar">' + searchBox('Search trainees') + '</div><div class="card">' + table([{ h: 'Trainee', f: t => '<b>' + h(t.name) + '</b><div class="muted small">@' + h(t.username) + '</div>' }, { h: 'Account', cls: 'hide-sm', f: t => statusBadge(t.status) },
+    { h: 'Certificate', f: t => t.certificate ? statusBadge(t.certificate.status) + (t.certificate.number ? ' <span class="mono small">' + h(t.certificate.number) + '</span>' : '') + (t.certificate.mime ? ' <span class="muted small">' + certMime(t.certificate.mime) + '</span>' : '') : '<span class="muted">None</span>' },
+    { h: 'Issued', cls: 'hide-sm', f: t => t.certificate && t.certificate.issued_at ? h(fmtDT(t.certificate.issued_at)) : '—' },
+    { h: '', cls: 'right nowrap', f: t => { const c = t.certificate, issued = c && c.status === 'issued'; return (issued ? '<button class="btn sm" data-act="certPreview" data-id="' + h(c.id) + '">' + icon('eye') + 'View</button> <button class="btn sm" data-act="certDownload" data-id="' + h(c.id) + '">' + icon('download') + '</button> <button class="btn sm danger" data-act="certRevoke" data-id="' + h(c.id) + '">Revoke</button>' : (t.status === 'active' ? '<button class="btn sm primary" data-act="certIssue" data-id="' + h(t.id) + '" data-name="' + h(t.name) + '">' + icon('upload') + (c && c.status === 'revoked' ? 'Re-issue' : 'Issue') + '</button>' : '')); } }], d.trainees, 'No trainees found.') + pager(d.meta) + '</div>'));
+});
+Actions.certIssue = el => {
+  openModal({ title: 'Issue certificate — ' + el.dataset.name, body: '<form data-form="certIssue" data-id="' + h(el.dataset.id) + '" novalidate><div class="field"><label for="f-file">Certificate file</label><input type="file" name="file" id="f-file" accept="application/pdf,image/jpeg,image/png,image/webp" required><div class="hint">PDF, JPG, PNG or WebP, up to 5 MB. Stored privately in Google Drive.</div></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-modal-close>Cancel</button><button class="btn primary" type="submit">Upload and issue</button></div></form>' });
+};
+Forms.certIssue = async f => {
+  const file = $('[name=file]', f).files[0];
+  if (!file) { clearErrors(f); return showErrors(f, { code: 'VALIDATION_ERROR', message: 'Choose a file.', fields: { file: 'Choose a file.' } }); }
+  if (file.size > 5 * 1024 * 1024) return showErrors(f, { code: 'VALIDATION_ERROR', message: 'The certificate must be 5 MB or smaller.', fields: { file: 'The certificate must be 5 MB or smaller.' } });
+  const b64 = await fileToBase64(file);
+  await submitForm(f, 'certificates.issue', { trainee_id: f.dataset.id, file: { name: file.name, base64: b64 } }, () => { const o = f.closest('.overlay'); if (o) o.remove(); go(State.path + qs(State.q)); });
+};
+Actions.certRevoke = async el => { const r = await confirmDialog({ title: 'Revoke certificate?', message: 'The trainee will no longer be able to view or download it.', confirmText: 'Revoke', danger: true, reason: 'Reason (optional)' }); if (!r) return; await busy(el, async () => { await A('certificates.revoke', { id: el.dataset.id, reason: r.reason }); toast(A.lastMessage, 'ok'); go(State.path + qs(State.q)); }); };
+Actions.certDownload = async el => busy(el, async () => { const f = await A('certificates.download', { id: el.dataset.id }); const url = URL.createObjectURL(saveBlob(f.base64, f.mime)); const a = document.createElement('a'); a.href = url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); });
+Actions.certPreview = async el => busy(el, async () => {
+  const f = await A('certificates.preview', { id: el.dataset.id }), url = URL.createObjectURL(saveBlob(f.base64, f.mime));
+  openModal({ title: 'Certificate', wide: true, onClose: () => URL.revokeObjectURL(url), body: f.mime === 'application/pdf' ? '<iframe src="' + url + '" style="width:100%;height:70vh;border:1px solid var(--border);border-radius:8px" title="Certificate"></iframe><p class="muted small">If the preview does not display, use Download instead.</p>' : '<img src="' + url + '" alt="Certificate" style="max-width:100%;border-radius:8px">' });
+});
+
+/* ---------- chain of command (manage) ---------- */
+route('/chain-of-command/manage', async (p, q, id) => {
+  loadingShell('/chain-of-command/manage', 'Chain of Command');
+  const d = await A('chain.manage'); if (!current(id)) return;
+  State.chainHosts = d.image_hosts;
+  mount(shell('/chain-of-command/manage', 'Chain of Command', '<button class="btn primary" data-act="chainEdit">' + icon('plus') + 'Add entry</button><a class="btn" href="#/chain-of-command" data-go="/chain-of-command">Public page</a>', '<div class="card">' + table([{ h: 'Order', cls: 'center', f: e => e.sort_order }, { h: 'Person', f: e => '<b>' + h(e.name) + '</b><div class="muted small">' + h(e.rank) + '</div>' }, { h: 'Position', f: e => h(e.position) }, { h: 'Portrait', cls: 'hide-sm', f: e => e.image_url ? badge('Image', 'ok') : '—' },
+    { h: '', cls: 'right nowrap', f: e => '<button class="btn sm" data-act="chainEdit" data-e="' + h(JSON.stringify(e)) + '">' + icon('edit') + 'Edit</button> <button class="btn sm danger" data-act="chainDelete" data-id="' + h(e.id) + '" aria-label="Delete">' + icon('trash') + '</button>' }], d.entries, 'No entries yet.') + '</div>'));
+});
+Actions.chainEdit = el => {
+  const e = el.dataset.e ? JSON.parse(el.dataset.e) : null;
+  openModal({ title: e ? 'Edit entry' : 'Add entry', body: '<form data-form="chainSave" ' + (e ? 'data-id="' + h(e.id) + '"' : '') + ' novalidate>' + field('Name', input('name', { value: e && e.name, required: true, max: 150 })) + '<div class="grid g2">' + field('Rank', input('rank', { value: e && e.rank, required: true, max: 100 })) + field('Sort order', input('sort_order', { type: 'number', value: e ? e.sort_order : 0, min: 0, maxn: 65535 })) + '</div>' + field('Position', input('position', { value: e && e.position, required: true, max: 150 })) +
+    field('Portrait image URL', input('image_url', { value: e && e.image_url, max: 500, ph: 'https://i.imgur.com/example.png' }), { hint: 'Direct https link (.jpg, .png, .webp) hosted on: ' + (State.chainHosts || []).join(', ') }) + field('Note', '<textarea name="note" maxlength="1000">' + h(e && e.note) + '</textarea>') + '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-modal-close>Cancel</button><button class="btn primary" type="submit">Save</button></div></form>' });
+};
+Forms.chainSave = async f => { const v = formVals(f); if (f.dataset.id) v.id = f.dataset.id; await submitForm(f, f.dataset.id ? 'chain.update' : 'chain.create', v, () => { const o = f.closest('.overlay'); if (o) o.remove(); go(State.path); }); };
+Actions.chainDelete = async el => { const ok = await confirmDialog({ title: 'Remove entry?', message: 'It will disappear from the public page.', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('chain.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path); }); };
+
+/* ---------- announcements ---------- */
+route('/announcements', async (p, q, id) => {
+  loadingShell('/announcements', 'Announcements');
+  const d = await A('announcements.list', { page: q.page }); if (!current(id)) return;
+  const items = d.announcements.map(a => '<div class="card" style="margin-bottom:14px"><div class="bd">' + memoHtml(Object.assign({}, a, { published_label: a.is_published ? 'Published ' + a.published_label : 'Draft' }), '<span>' + (a.is_published ? statusBadge('open').replace('open', 'Published') : badge('Draft')) + ' ' + (a.is_published ? 'Discord: ' + statusBadge(a.discord_status) : '') + '</span>') +
+    (a.discord_error && a.is_published ? '<div class="alert warn" style="margin-top:10px">' + h(a.discord_error) + '</div>' : '') + '<div class="row" style="margin-top:12px"><a class="btn sm" href="#/announcements/' + h(a.id) + '/edit" data-go="/announcements/' + h(a.id) + '/edit">' + icon('edit') + 'Edit</a>' +
+    (a.is_published ? '<button class="btn sm" data-act="annDo" data-op="unpublish" data-id="' + h(a.id) + '">Unpublish</button><button class="btn sm" data-act="annDo" data-op="' + (a.is_pinned ? 'unpin' : 'pin') + '" data-id="' + h(a.id) + '">' + icon('pin') + (a.is_pinned ? 'Unpin' : 'Pin') + '</button>' + (a.discord_status !== 'sent' ? '<button class="btn sm" data-act="annDo" data-op="retry" data-id="' + h(a.id) + '">' + icon('refresh') + (a.discord_status === 'failed' ? 'Retry Discord' : 'Send to Discord') + '</button>' : '') : '<button class="btn sm primary" data-act="annDo" data-op="publish" data-id="' + h(a.id) + '">Publish</button>') +
+    '<button class="btn sm danger" data-act="annDelete" data-id="' + h(a.id) + '">' + icon('trash') + 'Delete</button></div></div></div>').join('');
+  mount(shell('/announcements', 'Announcements', '<a class="btn primary" href="#/announcements/create" data-go="/announcements/create">' + icon('plus') + 'New announcement</a>', (items || '<div class="card">' + emptyState('No announcements yet.', 'announce') + '</div>') + '<div class="card">' + pager(d.meta) + '</div>'));
+});
+const annForm = a => '<form data-form="annSave" ' + (a ? 'data-id="' + h(a.id) + '"' : '') + ' novalidate>' + field('To', input('recipient', { value: a && a.recipient, required: true, max: 150 })) + field('From', input('sender', { value: a && a.sender, required: true, max: 150 })) + field('RE', input('subject', { value: a && a.subject, required: true, max: 150 })) +
+  field('Context', '<textarea name="body" maxlength="3000" required style="min-height:160px">' + h(a && a.body) + '</textarea>') + field('Name / signature', input('signature', { value: a && a.signature, required: true, max: 150 })) +
+  '<label class="check" style="margin-bottom:14px"><input type="checkbox" name="publish"' + (a && a.is_published ? ' checked disabled' : '') + '> Publish now (also posts to Discord when configured)</label><div class="row"><button class="btn primary" type="submit">Save</button><a class="btn" href="#/announcements" data-go="/announcements">Cancel</a></div></form>';
+route('/announcements/create', async () => { mount(shell('/announcements', 'New announcement', '', '<div class="card" style="max-width:700px"><div class="bd">' + annForm(null) + '</div></div>')); });
+route('/announcements/:id/edit', async (p, q, id) => { loadingShell('/announcements', 'Edit announcement'); const d = await A('announcements.get', { id: p.id }); if (!current(id)) return; mount(shell('/announcements', 'Edit announcement', '', '<div class="card" style="max-width:700px"><div class="bd">' + annForm(d.announcement) + '</div></div>')); });
+Forms.annSave = async f => { const v = formVals(f); if (f.dataset.id) v.id = f.dataset.id; await submitForm(f, f.dataset.id ? 'announcements.update' : 'announcements.create', v, () => go('/announcements')); };
+Actions.annDo = async el => busy(el, async () => { await A('announcements.' + el.dataset.op, { id: el.dataset.id }); const m = A.lastMessage; if (m) toast(m, /failed/i.test(m) ? 'bad' : 'ok'); go(State.path + qs(State.q)); });
+Actions.annDelete = async el => { const ok = await confirmDialog({ title: 'Delete announcement?', message: 'It is removed from the portal. Messages already posted to Discord are not deleted.', confirmText: 'Delete', danger: true }); if (!ok) return; await busy(el, async () => { await A('announcements.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path + qs(State.q)); }); };
+
+/* ---------- recruitment (intake) ---------- */
+route('/intake', async (p, q, id) => {
+  loadingShell('/intake', 'Recruitment');
+  const d = await A('intake.get'); if (!current(id)) return;
+  mount(shell('/intake', 'Recruitment', '', '<div class="card" style="max-width:560px"><div class="bd"><form data-form="intake" novalidate><p style="margin-top:0">Controls the banner shown on the public home page and dashboards.</p>' + field('Status', select('status', [{ value: 'open', label: 'Open — ' + d.messages.open }, { value: 'closed', label: 'Closed — ' + d.messages.closed }], d.status)) + '<button class="btn primary" type="submit">Save</button></form></div></div>'));
+});
+Forms.intake = async f => { await submitForm(f, 'intake.update', formVals(f), () => { go(State.path); }); };
+
+/* ---------- settings ---------- */
+function settingsFrame(active, body) {
+  const tabs = [['/settings/profile', 'Profile'], ['/settings/security', 'Password'], ['/settings/appearance', 'Appearance']];
+  return shell(active, 'Settings', '', '<div class="row" style="margin-bottom:16px">' + tabs.map(t => '<a class="btn sm ' + (t[0] === active ? 'primary' : '') + '" href="#' + t[0] + '" data-go="' + t[0] + '">' + t[1] + '</a>').join('') + '</div>' + body);
+}
+route('/settings', async () => go('/settings/profile'));
+route('/settings/profile', async () => {
+  const u = State.user;
+  mount(settingsFrame('/settings/profile', '<div class="card" style="max-width:560px"><div class="bd"><form data-form="profile" novalidate>' + field('Name', input('name', { value: u.name, required: true, max: 255 })) + field('Username', input('x', { value: u.username, disabled: true })) + field('Email', input('y', { value: u.email || '—', disabled: true }), { hint: 'Contact an administrator to change your username or email.' }) + field('Role', input('z', { value: u.role_label, disabled: true })) + '<button class="btn primary" type="submit">Save</button></form></div></div>'));
+});
+Forms.profile = async f => { await submitForm(f, 'settings.profile', { name: formVals(f).name }, d => { State.user = d.user; go('/settings/profile'); }); };
+route('/settings/security', async () => {
+  mount(settingsFrame('/settings/security', (State.user.force_password_change ? '<div class="alert warn">You are using a temporary password. Choose a new one to continue.</div>' : '') + '<div class="card" style="max-width:560px"><div class="bd"><form data-form="password" novalidate>' + field('Current password', input('current_password', { type: 'password', required: true, auto: 'current-password' })) + field('New password', input('password', { type: 'password', required: true, auto: 'new-password' }), { hint: 'At least 12 characters. Changing it signs you out of other devices.' }) + field('Confirm new password', input('password_confirmation', { type: 'password', required: true, auto: 'new-password' })) + '<button class="btn primary" type="submit">Update password</button></form></div></div>'));
+});
+Forms.password = async f => { await submitForm(f, 'settings.password', formVals(f), d => { State.user = d.user; f.reset(); go('/dashboard'); }); };
+route('/settings/appearance', async () => {
+  const cur = Store.get('ams_theme') || 'system';
+  mount(settingsFrame('/settings/appearance', '<div class="card" style="max-width:560px"><div class="bd"><p style="margin-top:0">Choose how the portal looks on this device.</p><div class="row">' + [['light', 'Light', 'sun'], ['dark', 'Dark', 'moon'], ['system', 'System', 'settings']].map(t => '<button class="btn ' + (cur === t[0] ? 'primary' : '') + '" data-act="theme" data-v="' + t[0] + '">' + icon(t[2]) + t[1] + '</button>').join('') + '</div></div></div>'));
+});
+Actions.theme = el => { Store.set('ams_theme', el.dataset.v); applyTheme(); go('/settings/appearance'); };
+</script>

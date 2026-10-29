@@ -1,0 +1,307 @@
+<style>
+/* ===== Quiz attempt page: ported from ams-portal-v2 resources/js/pages/quizzes/attempt.tsx (no sidebar, one question at a time) ===== */
+.qz{display:flex;flex-direction:column;min-height:100vh;min-height:100svh;background:var(--background);color:var(--foreground)}
+.qz *{box-sizing:border-box}.qz h1,.qz h2,.qz p,.qz fieldset,.qz legend{margin:0}.qz fieldset{border:0;padding:0;min-width:0}.qz svg{flex:none}
+.qz .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.qz-head{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);background:color-mix(in oklab,var(--background) 90%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.qz-hin{display:flex;align-items:center;justify-content:space-between;gap:.75rem;width:100%;max-width:48rem;margin:0 auto;padding:.75rem 1rem}
+.qz-t{min-width:0}.qz-t h1{font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qz-t p{font-size:12px;line-height:16px;color:var(--muted-foreground)}
+.qz-r{display:flex;flex:none;flex-direction:column;align-items:flex-end;gap:.25rem}
+.qz-clock{display:flex;align-items:center;gap:.375rem;border:1px solid var(--border);border-radius:.75rem;padding:.375rem .75rem;font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums}.qz-clock svg{width:1rem;height:1rem}
+.qz-clock.low{border-color:color-mix(in oklab,var(--destructive) 50%,transparent);color:var(--destructive)}
+.qz-save{display:flex;align-items:center;gap:.375rem;font-size:12px;line-height:16px;color:var(--muted-foreground)}.qz-save svg{width:.875rem;height:.875rem}
+.qz-save .ok{color:var(--emerald-600)}:root[data-theme="dark"] .qz-save .ok{color:var(--emerald-400)}.qz-save.err{color:var(--destructive);gap:.5rem}
+.qz-save .spin{animation:qzspin 1s linear infinite}@keyframes qzspin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.qz-save .spin{animation:none}}
+.qz-retry{display:inline-flex;align-items:center;gap:.25rem;border:1px solid color-mix(in oklab,var(--destructive) 40%,transparent);border-radius:.375rem;padding:.125rem .5rem;font:inherit;font-weight:500;color:inherit;background:transparent;cursor:pointer}.qz-retry:hover{background:color-mix(in oklab,var(--destructive) 10%,transparent)}.qz-retry svg{width:.75rem;height:.75rem}
+.qz-bar{height:4px;background:var(--muted)}.qz-bar div{height:100%;background:var(--sky-600);transition:width .3s}@media(prefers-reduced-motion:reduce){.qz-bar div{transition:none}}
+.qz-main{flex:1;display:flex;flex-direction:column;gap:1rem;width:100%;max-width:48rem;margin:0 auto;padding:1rem}
+.qz-b{display:contents}
+.qz-gate{display:flex;flex-direction:column;align-items:center;gap:1rem;border:1px solid var(--border);border-radius:1rem;background:var(--card);padding:2rem;text-align:center;box-shadow:var(--sh-xs)}
+.qz-gate .ic{display:flex;width:3rem;height:3rem;align-items:center;justify-content:center;border-radius:1rem;background:color-mix(in oklab,var(--sky-500) 10%,transparent);color:var(--sky-700)}:root[data-theme="dark"] .qz-gate .ic{color:var(--sky-300)}.qz-gate .ic svg{width:1.5rem;height:1.5rem}
+.qz-gate h2{font-size:18px;line-height:28px;font-weight:600}.qz-gate p{margin-top:.25rem;font-size:14px;line-height:20px;color:var(--muted-foreground)}
+.qz-note{font-size:12px;line-height:16px;color:var(--muted-foreground)}
+.qz-away{display:flex;align-items:center;justify-content:space-between;gap:.75rem;border:1px solid var(--border);border-radius:.75rem;padding:.75rem 1rem;font-size:14px;line-height:20px;color:var(--muted-foreground)}
+.qz-away button{flex:none;border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:500;text-decoration:underline;color:inherit;cursor:pointer}
+.qz-err{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;border:1px solid color-mix(in oklab,var(--destructive) 40%,transparent);border-radius:.75rem;background:color-mix(in oklab,var(--destructive) 5%,transparent);padding:.75rem 1rem;font-size:14px;line-height:20px;color:var(--destructive)}
+.qz-nav{display:flex;flex-wrap:wrap;gap:.375rem}
+.qz-n{display:flex;width:2rem;height:2rem;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:.5rem;background:transparent;font:inherit;font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;color:inherit;cursor:pointer}
+.qz-n:disabled{cursor:not-allowed;opacity:.4}.qz-n.done{background:color-mix(in oklab,var(--emerald-500) 10%,transparent);color:var(--emerald-700)}:root[data-theme="dark"] .qz-n.done{color:var(--emerald-300)}
+.qz-n.cur{border-color:var(--sky-600);background:var(--sky-600);color:#fff}
+.qz-card{display:flex;flex-direction:column;gap:1.25rem;border:1px solid var(--border);border-radius:1rem;background:var(--card);padding:1.25rem;box-shadow:var(--sh-xs)}
+.qz-qh{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.qz-qh h2{font-size:16px;line-height:1.625;font-weight:500;white-space:pre-wrap;overflow-wrap:anywhere}
+.qz-pts{flex:none;border-radius:9999px;background:var(--muted);padding:.25rem .625rem;font-size:12px;line-height:16px;color:var(--muted-foreground)}
+.qz-opts{display:grid;gap:.5rem}
+.qz-opt{display:flex;min-height:3rem;align-items:flex-start;gap:.75rem;border:1px solid var(--border);border-radius:.75rem;padding:.75rem;font-size:14px;line-height:20px;cursor:pointer}.qz-opt:hover{background:color-mix(in oklab,var(--muted) 50%,transparent)}
+.qz-opt input{width:1rem;height:1rem;margin:.125rem 0 0;accent-color:var(--sky-600)}.qz-opt.sel{border-color:var(--sky-600);background:color-mix(in oklab,var(--sky-500) 10%,transparent)}.qz-opt.lock{cursor:not-allowed;opacity:.7}
+.qz-card textarea{width:100%;min-height:11rem;resize:vertical;border:1px solid var(--input);border-radius:.75rem;background:var(--background);padding:.5rem .75rem;font:inherit;font-size:14px;line-height:20px;color:inherit;box-shadow:var(--sh-xs);outline:none}
+.qz-card textarea:focus-visible{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 50%,transparent)}.qz-card textarea:disabled{cursor:not-allowed;opacity:.5}
+.qz-hint{font-size:12px;line-height:16px;color:var(--muted-foreground)}
+.qz-foot{position:sticky;bottom:0;z-index:10;border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom,0px);background:color-mix(in oklab,var(--background) 90%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.qz-fin{display:flex;align-items:center;justify-content:space-between;gap:.5rem;width:100%;max-width:48rem;margin:0 auto;padding:.75rem 1rem}
+.qz .btn{border-radius:.75rem}.qz .btn .xs{display:none}@media(max-width:639px){.qz .btn .xs{display:inline}.qz .btn .sm-up{display:none}}
+@media(min-width:640px){.qz-t h1{font-size:16px;line-height:24px}.qz-clock{font-size:18px;line-height:28px}.qz-main{padding-top:1.5rem;padding-bottom:1.5rem}.qz-card{padding:1.5rem}.qz-qh h2{font-size:18px}}
+</style>
+<script>
+/* ===== Quizzes: manager, trainee attempt, review ===== */
+const qStatus = s => statusBadge(s).replace(/>(\w+)</, (m, t) => '>' + ({ in_progress: 'In progress', graded: 'Graded', submitted: 'Awaiting review', available: 'Available' }[s] || t) + '<');
+
+route('/quizzes', async (p, q, id) => {
+  loadingShell('/quizzes', 'Quizzes');
+  const d = await A('quizzes.list'); if (!current(id)) return;
+  if (d.mode === 'trainee') {
+    return mount(shell('/quizzes', 'My quizzes', '', d.quizzes.length ? '<div class="grid g2">' + d.quizzes.map(z => '<div class="card"><div class="bd stack"><div class="row between"><h2>' + h(z.title) + '</h2>' + qStatus(z.status) + '</div><div class="muted small">' + h(z.phase) + ' · ' + z.duration_minutes + ' min · ' + num(z.total_points) + ' points</div>' +
+      (z.status === 'graded' ? '<div>Score: <b>' + num(z.score) + '</b> / ' + num(z.total_points) + '</div>' : '') + '<div>' + (z.status === 'in_progress' ? '<a class="btn primary" href="#/quizzes/attempts/' + h(z.attempt_id) + '" data-go="/quizzes/attempts/' + h(z.attempt_id) + '">Continue</a>' : z.status === 'available' ? '<a class="btn primary" href="#/quizzes/' + h(z.id) + '" data-go="/quizzes/' + h(z.id) + '">View and start</a>' : '<a class="btn" href="#/quizzes/' + h(z.id) + '" data-go="/quizzes/' + h(z.id) + '">View</a>') + '</div></div></div>').join('') + '</div>' : '<div class="card">' + emptyState('No quizzes have been assigned to you.', 'quiz') + '</div>'));
+  }
+  mount(shell('/quizzes', 'Quizzes', d.can_create ? '<a class="btn primary" href="#/quizzes/create" data-go="/quizzes/create">' + icon('plus') + 'New quiz</a>' : '', '<div class="card">' + table([{ h: 'Quiz', f: z => '<a href="#/quizzes/' + h(z.id) + '" data-go="/quizzes/' + h(z.id) + '"><b>' + h(z.title) + '</b></a><div class="muted small">' + h(z.phase) + '</div>' }, { h: 'Questions', cls: 'center', f: z => z.question_count + ' · ' + num(z.total_points) + ' pts' }, { h: 'Time', cls: 'hide-sm', f: z => z.duration_minutes + ' min' }, { h: 'Access', cls: 'center', f: z => z.access_count },
+    { h: 'Attempts', cls: 'center', f: z => z.submitted_count + '/' + z.attempt_count }, { h: 'To review', cls: 'center', f: z => z.pending_review ? badge(z.pending_review, 'warn') : '—' }, { h: '', cls: 'right', f: z => '<a class="btn sm" href="#/quizzes/' + h(z.id) + '/edit" data-go="/quizzes/' + h(z.id) + '/edit">' + icon('edit') + 'Edit</a>' }], d.quizzes, 'No quizzes yet. Quizzes exist for Phase 1 and the Final Examination.') + '</div>'));
+});
+
+/* ---------- quiz editor ---------- */
+let QF = { questions: [], locked: false };
+const blankQ = type => ({ type: type || 'multiple_choice', prompt: '', points: 1, options: type === 'paragraph' ? null : ['', ''], correct_option: type === 'paragraph' ? null : 0 });
+function syncQF() {
+  QF.questions = $$('.qeditor').map(el => {
+    const type = $('[name=q-type]', el).value, q = { id: el.dataset.qid || undefined, type, prompt: $('[name=q-prompt]', el).value, points: $('[name=q-points]', el).value };
+    if (type === 'multiple_choice') { q.options = $$('.q-opt', el).map(i => i.value); const r = $('input[type=radio]:checked', el); q.correct_option = r ? parseInt(r.value, 10) : 0; }
+    return q;
+  });
+}
+function renderQuestions() {
+  const box = $('#qlist'); if (!box) return;
+  box.innerHTML = QF.questions.map((q, i) => {
+    const locked = QF.locked && q.id;
+    return '<div class="qeditor" data-i="' + i + '" data-qid="' + h(q.id || '') + '"><div class="row between" style="margin-bottom:10px"><b>Question ' + (i + 1) + '</b><span class="row"><button type="button" class="btn sm" data-act="qMove" data-i="' + i + '" data-d="-1"' + (locked || i === 0 ? ' disabled' : '') + ' aria-label="Move up">↑</button><button type="button" class="btn sm" data-act="qMove" data-i="' + i + '" data-d="1"' + (locked || i === QF.questions.length - 1 ? ' disabled' : '') + ' aria-label="Move down">↓</button><button type="button" class="btn sm danger" data-act="qRemove" data-i="' + i + '"' + (locked ? ' disabled' : '') + ' aria-label="Remove">' + icon('trash') + '</button></span></div>' +
+      '<div class="grid g2"><div class="field"><label>Type</label><select name="q-type" data-act="qType" data-i="' + i + '"><option value="multiple_choice"' + (q.type === 'multiple_choice' ? ' selected' : '') + '>Multiple choice (auto-graded)</option><option value="paragraph"' + (q.type === 'paragraph' ? ' selected' : '') + '>Paragraph (manual review)</option></select></div><div class="field"><label>Points</label><input type="number" name="q-points" min="0.01" step="0.01" value="' + h(q.points) + '"></div></div>' +
+      '<div class="field"><label>Prompt</label><textarea name="q-prompt" maxlength="10000">' + h(q.prompt) + '</textarea></div>' +
+      (q.type === 'multiple_choice' ? '<div class="field"><label>Answer options (select the correct one)</label>' + q.options.map((o, j) => '<div class="opt"><input type="radio" name="q-correct-' + i + '" value="' + j + '"' + (q.correct_option === j ? ' checked' : '') + ' aria-label="Correct answer"><input type="text" class="q-opt" maxlength="1000" value="' + h(o) + '" placeholder="Option ' + (j + 1) + '"><button type="button" class="btn sm ghost" data-act="optRemove" data-i="' + i + '" data-j="' + j + '"' + (q.options.length <= 2 ? ' disabled' : '') + ' aria-label="Remove option">' + icon('x') + '</button></div>').join('') + (q.options.length < 8 ? '<button type="button" class="btn sm" data-act="optAdd" data-i="' + i + '">' + icon('plus') + 'Add option</button>' : '') + '</div>' : '') + '</div>';
+  }).join('') || '<p class="muted">No questions yet.</p>';
+}
+function quizFormPage(d) {
+  const z = d.quiz; QF = { questions: z ? z.questions.map(q => ({ id: q.id, type: q.type, prompt: q.prompt, points: q.points, options: q.options, correct_option: q.correct_option })) : [blankQ()], locked: d.has_attempts };
+  const comps = (z && !d.components.some(c => c.key === z.grade_component_key) ? [{ key: z.grade_component_key, label: z.grade_component_key }] : []).concat(d.components);
+  return '<form data-form="quizSave" ' + (z ? 'data-id="' + h(z.id) + '"' : '') + ' novalidate>' + (d.has_attempts ? '<div class="alert warn">Attempts exist for this quiz. You can edit wording, points and answer keys (submitted attempts are re-graded automatically) and add new questions, but not remove or reorder existing ones.</div>' : '') +
+    '<div class="card" style="margin-bottom:16px"><div class="bd"><div class="grid g2">' + field('Phase', select('grade_component_key', comps.map(c => ({ value: c.key, label: c.label })), z ? z.grade_component_key : (comps[0] || {}).key, { disabled: d.has_attempts })) + field('Time limit (minutes)', input('duration_minutes', { type: 'number', value: z ? z.duration_minutes : 30, min: 1, maxn: 65535, required: true })) + '</div>' +
+    field('Title', input('title', { value: z && z.title, required: true, max: 150 })) + field('Instructions', '<textarea name="instructions" maxlength="10000" required>' + h(z && z.instructions) + '</textarea>') + '</div></div><div id="qlist"></div>' +
+    '<div class="row" style="margin:8px 0 18px"><button type="button" class="btn" data-act="qAdd" data-t="multiple_choice">' + icon('plus') + 'Multiple choice</button><button type="button" class="btn" data-act="qAdd" data-t="paragraph">' + icon('plus') + 'Paragraph</button></div><div class="row"><button class="btn primary" type="submit">' + (z ? 'Save quiz' : 'Create quiz') + '</button><a class="btn" href="#/quizzes" data-go="/quizzes">Cancel</a></div></form>';
+}
+route('/quizzes/create', async (p, q, id) => {
+  loadingShell('/quizzes', 'New quiz'); const d = await A('quizzes.form', {}); if (!current(id)) return;
+  if (!d.components.length) return mount(shell('/quizzes', 'New quiz', '', '<div class="alert info">Every quiz-eligible phase already has a quiz.</div>'));
+  mount(shell('/quizzes', 'New quiz', '', quizFormPage(d))); renderQuestions();
+});
+route('/quizzes/:id/edit', async (p, q, id) => {
+  loadingShell('/quizzes', 'Edit quiz'); const d = await A('quizzes.form', { id: p.id }); if (!current(id)) return;
+  mount(shell('/quizzes', 'Edit quiz', '', quizFormPage(d))); renderQuestions();
+});
+Actions.qAdd = el => { syncQF(); QF.questions.push(blankQ(el.dataset.t)); renderQuestions(); };
+Actions.qRemove = el => { syncQF(); QF.questions.splice(+el.dataset.i, 1); renderQuestions(); };
+Actions.qMove = el => { syncQF(); const i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= QF.questions.length) return; const t = QF.questions[i]; QF.questions[i] = QF.questions[j]; QF.questions[j] = t; renderQuestions(); };
+Actions.optAdd = el => { syncQF(); QF.questions[+el.dataset.i].options.push(''); renderQuestions(); };
+Actions.optRemove = el => { syncQF(); const q = QF.questions[+el.dataset.i], j = +el.dataset.j; q.options.splice(j, 1); if (q.correct_option >= q.options.length) q.correct_option = 0; else if (q.correct_option > j) q.correct_option--; renderQuestions(); };
+document.addEventListener('change', e => { if (e.target.matches('select[data-act="qType"]')) { syncQF(); const i = +e.target.dataset.i, q = QF.questions[i]; if (q.type === 'paragraph') { q.options = null; q.correct_option = null; } else { q.options = ['', '']; q.correct_option = 0; } renderQuestions(); } });
+Forms.quizSave = async f => {
+  syncQF(); const v = formVals(f), edit = !!f.dataset.id;
+  const payload = { title: v.title, instructions: v.instructions, duration_minutes: v.duration_minutes, grade_component_key: $('[name=grade_component_key]', f).value,
+    questions: QF.questions.map(q => { const o = { type: q.type, prompt: q.prompt, points: q.points }; if (q.id) o.id = q.id; if (q.type === 'multiple_choice') { o.options = q.options; o.correct_option = q.correct_option; } return o; }) };
+  if (edit) payload.id = f.dataset.id;
+  await submitForm(f, edit ? 'quizzes.update' : 'quizzes.create', payload, d => go('/quizzes/' + d.id));
+};
+
+/* ---------- quiz detail ---------- */
+route('/quizzes/attempts/:id', async (p, q, id) => renderAttempt(p.id, id));
+route('/quizzes/:qid/review/:aid', async (p, q, id) => {
+  loadingShell('/quizzes', 'Review attempt');
+  const d = await A('quizzes.reviewGet', { quiz_id: p.qid, attempt_id: p.aid }); if (!current(id)) return;
+  const a = d.attempt, editable = a.status === 'submitted';
+  const body = (a.status === 'in_progress' ? '<div class="alert warn">This attempt has not been submitted yet.</div>' : '') +
+    '<div class="card"><div class="bd">' + d.questions.map((qq, i) => '<div class="qa"><div class="row between"><b>' + (i + 1) + '. ' + h(qq.prompt).replace(/\n/g, '<br>') + '</b><span class="muted small nowrap">' + num(qq.points) + ' pts</span></div>' +
+      (qq.type === 'multiple_choice' ? qq.options.map((o, j) => '<div class="choice ' + (j === qq.correct_option ? 'right' : (j === qq.selected_option ? 'wrong' : '')) + '">' + h(o) + (j === qq.selected_option ? ' <span class="small muted">(trainee’s answer)</span>' : '') + (j === qq.correct_option ? ' <span class="small">✔ correct</span>' : '') + '</div>').join('') + '<div class="small muted">Score: ' + num(qq.auto_score) + ' / ' + num(qq.points) + (qq.selected_option === null ? ' · no answer' : '') + '</div>'
+        : '<div class="memo" style="margin:8px 0;white-space:pre-wrap">' + (qq.answer_text ? h(qq.answer_text) : '<span class="muted">No answer given.</span>') + '</div>' + (editable ? '<div class="field" style="max-width:220px"><label>Score (0 – ' + num(qq.points) + ')</label><input type="number" data-score data-qid="' + h(qq.id) + '" min="0" max="' + h(qq.points) + '" step="0.01" value="0"></div>' : '<div class="small muted">Score: ' + num(qq.manual_score) + ' / ' + num(qq.points) + '</div>')) + '</div>').join('') + '</div></div>' +
+    (editable ? '<div class="row" style="margin-top:16px"><button class="btn primary" data-act="reviewSave" data-q="' + h(d.quiz.id) + '" data-a="' + h(a.id) + '">Save review and post grade</button></div>' : '<div class="alert ok" style="margin-top:16px">Reviewed. Final score <b>' + num(a.final_score) + '</b> / ' + num(d.quiz.total_points) + ' (auto ' + num(a.auto_score) + ' + manual ' + num(a.manual_score) + ').</div>');
+  mount(shell('/quizzes', d.trainee.name, '<a class="btn" href="#/quizzes/' + h(d.quiz.id) + '" data-go="/quizzes/' + h(d.quiz.id) + '">← Quiz</a>', body, h(d.quiz.title) + ' · @' + h(d.trainee.username) + ' · submitted ' + h(fmtDT(a.submitted_at))));
+});
+Actions.reviewSave = async el => {
+  const answers = $$('[data-score]').map(i => ({ question_id: i.dataset.qid, manual_score: i.value }));
+  const ok = await confirmDialog({ title: 'Post grade?', message: 'The total is written to the trainee’s gradebook. A reviewed attempt cannot be reviewed again.', confirmText: 'Save review' }); if (!ok) return;
+  await busy(el, async () => { await A('quizzes.reviewSave', { quiz_id: el.dataset.q, attempt_id: el.dataset.a, answers }); toast(A.lastMessage, 'ok'); go('/quizzes/' + el.dataset.q); });
+};
+
+route('/quizzes/:id', async (p, q, id) => {
+  loadingShell('/quizzes', 'Quiz');
+  const d = await A('quizzes.show', { id: p.id }); if (!current(id)) return;
+  if (d.redirect) return go('/quizzes/attempts/' + d.redirect.id);
+  if (d.status) { // trainee view
+    const z = d.quiz;
+    return mount(shell('/quizzes', z.title, '<a class="btn" href="#/quizzes" data-go="/quizzes">← My quizzes</a>', '<div class="card" style="max-width:720px"><div class="bd stack"><div class="muted">' + h(z.phase) + ' · ' + z.duration_minutes + ' minutes · one attempt only</div><div style="white-space:pre-wrap">' + h(z.instructions) + '</div>' +
+      (d.status === 'available' ? '<div class="alert warn">The timer starts when you press Start and keeps running if you leave. You cannot retake the quiz.</div><button class="btn primary" data-act="quizStart" data-id="' + h(z.id) + '">Start quiz</button>' : '<div class="alert ok">You have already completed this quiz. ' + (d.status === 'graded' ? 'It has been graded — see your Grades page.' : 'It is waiting for review.') + '</div>') + '</div></div>'));
+  }
+  const z = d.quiz;
+  const body = '<div class="grid g3"><div class="card stat"><div class="v">' + d.questions.length + '</div><div class="l">Questions</div></div><div class="card stat"><div class="v">' + num(z.total_points) + '</div><div class="l">Total points</div></div><div class="card stat"><div class="v">' + z.duration_minutes + '</div><div class="l">Minutes</div></div></div>' +
+    '<div class="card" style="margin-top:16px"><div class="hd"><h2>Instructions</h2></div><div class="bd" style="white-space:pre-wrap">' + h(z.instructions) + '</div></div>' +
+    '<div class="card" style="margin-top:16px"><div class="hd"><h2>Questions</h2></div><div class="bd">' + d.questions.map((qq, i) => '<div class="qa"><div class="row between"><b>' + (i + 1) + '. ' + h(qq.prompt) + '</b><span class="muted small nowrap">' + num(qq.points) + ' pts · ' + (qq.type === 'paragraph' ? 'paragraph' : 'multiple choice') + '</span></div>' + (qq.options ? '<ol type="A" style="margin:8px 0 0">' + qq.options.map((o, j) => '<li' + (j === qq.correct_option ? ' style="font-weight:700;color:var(--accent-ink)"' : '') + '>' + h(o) + (j === qq.correct_option ? ' ✔' : '') + '</li>').join('') + '</ol>' : '') + '</div>').join('') + '</div></div>' +
+    '<div class="grid g2" style="margin-top:16px"><div class="card"><div class="hd"><h2>Access</h2></div><div class="bd" style="border-bottom:1px solid var(--border)"><div class="row"><select id="grant-user" style="flex:1;min-width:160px"><option value="">Grant access to…</option>' + d.available_trainees.map(t => '<option value="' + h(t.id) + '">' + h(t.name) + ' (@' + h(t.username) + ')</option>').join('') + '</select><button class="btn primary" data-act="quizGrant" data-id="' + h(z.id) + '">Grant</button></div></div>' +
+    table([{ h: 'Trainee', f: a => '<b>' + h(a.name) + '</b>' }, { h: 'Status', f: a => a.revoked_at ? badge('Revoked', 'bad') : badge('Granted', 'ok') }, { h: '', cls: 'right', f: a => a.revoked_at ? '' : '<button class="btn sm danger" data-act="quizRevoke" data-id="' + h(z.id) + '" data-tid="' + h(a.trainee_id) + '">Revoke</button>' }], d.accesses, 'Nobody has access yet.') + '</div>' +
+    '<div class="card"><div class="hd"><h2>Attempts</h2></div>' + table([{ h: 'Trainee', f: a => '<b>' + h(a.name) + '</b>' }, { h: 'Status', f: a => qStatus(a.status) }, { h: 'Score', cls: 'nowrap', f: a => a.final_score !== null ? '<b>' + num(a.final_score) + '</b>' : (a.auto_score !== null ? '<span class="muted">auto ' + num(a.auto_score) + '</span>' : '—') },
+      { h: '', cls: 'right nowrap', f: a => (a.submitted_at ? '<a class="btn sm" href="#/quizzes/' + h(z.id) + '/review/' + h(a.id) + '" data-go="/quizzes/' + h(z.id) + '/review/' + h(a.id) + '">' + (a.status === 'graded' ? 'View' : 'Review') + '</a> ' : '') + (d.can.reset ? '<button class="btn sm danger" data-act="quizReset" data-q="' + h(z.id) + '" data-a="' + h(a.id) + '">Reset</button>' : '') }], d.attempts, 'No attempts yet.') + '</div></div>';
+  mount(shell('/quizzes', z.title, '<a class="btn" href="#/quizzes/' + h(z.id) + '/edit" data-go="/quizzes/' + h(z.id) + '/edit">' + icon('edit') + 'Edit quiz</a>', body, h(z.phase)));
+});
+Actions.quizGrant = async el => { const t = $('#grant-user').value; if (!t) return toast('Choose a trainee first.', 'bad'); await busy(el, async () => { await A('quizzes.grant', { id: el.dataset.id, trainee_id: t }); toast(A.lastMessage, 'ok'); go(State.path); }); };
+Actions.quizRevoke = async el => { const ok = await confirmDialog({ title: 'Revoke access?', message: 'The trainee can no longer open this quiz.', confirmText: 'Revoke', danger: true }); if (!ok) return; await busy(el, async () => { await A('quizzes.revoke', { id: el.dataset.id, trainee_id: el.dataset.tid }); toast(A.lastMessage, 'ok'); go(State.path); }); };
+Actions.quizReset = async el => { const ok = await confirmDialog({ title: 'Reset this attempt?', message: 'Answers and scores are deleted, any grade posted from this attempt is cleared, and the trainee gets a fresh attempt. This is logged.', confirmText: 'Reset attempt', danger: true }); if (!ok) return; await busy(el, async () => { await A('quizzes.resetAttempt', { quiz_id: el.dataset.q, attempt_id: el.dataset.a }); toast(A.lastMessage, 'ok'); go(State.path); }); };
+Actions.quizStart = async el => { const ok = await confirmDialog({ title: 'Start the quiz now?', message: 'The timer begins immediately. You only get one attempt.', confirmText: 'Start' }); if (!ok) return;
+  try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* not allowed */ } // inside the click, so the browser allows it
+  await busy(el, async () => { const d = await A('quizzes.start', { id: el.dataset.id }); go('/quizzes/attempts/' + d.id); }); };
+
+/* ---------- taking a quiz (layout ported from attempt.tsx: no sidebar, one question at a time) ---------- */
+Object.assign(ICONS, {
+  qzClock: 'M12 6v6h4M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20', qzExpand: 'm15 15 6 6m-6-6v4.8m0-4.8h4.8M9 19.8V15m0 0H4.2M9 15l-6 6M15 4.2V9m0 0h4.8M15 9l6-6M9 4.2V9m0 0H4.2M9 9 3 3',
+  qzLeft: 'm12 19-7-7 7-7M19 12H5', qzRight: 'M5 12h14m-7-7 7 7-7 7', qzCheck: 'M20 6 9 17l-5-5', qzSpin: 'M21 12a9 9 0 1 1-6.219-8.56',
+  qzRetry: 'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5',
+  qzWarn: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01'
+});
+async function renderAttempt(attemptId, navId) {
+  loadingShell('/quizzes', 'Quiz');
+  const d = await A('quizzes.attempt', { id: attemptId }); if (!current(navId)) return;
+  if (d.submitted) {
+    return mount(shell('/quizzes', d.quiz.title, '<a class="btn" href="#/quizzes" data-go="/quizzes">My quizzes</a>', '<div class="card" style="max-width:640px"><div class="bd stack"><div class="alert ' + (d.timed_out ? 'warn' : 'ok') + '">' + (d.timed_out ? 'Time ran out and your answers were submitted automatically.' : 'Your answers were submitted.') + '</div><p style="margin:0">Submitted ' + h(fmtDT(d.submitted_at)) + '.</p>' + (d.status === 'graded' ? '<p style="margin:0"><b>Score: ' + num(d.score) + ' / ' + num(d.total_points) + '</b></p>' : '<p class="muted" style="margin:0">An instructor will review your paragraph answers and post your grade.</p>') + '</div></div>'));
+  }
+  const questions = d.questions, N = questions.length, title = d.quiz.title;
+  if (!N) return mount(shell('/quizzes', title, '<a class="btn" href="#/quizzes" data-go="/quizzes">My quizzes</a>', '<div class="alert warn">This quiz has no questions.</div>'));
+
+  /* ----- state ----- */
+  const ans = {};
+  d.answers.forEach(a => { const o = ans[a.question_id] = {}; if (a.selected_option !== null && a.selected_option !== undefined) o.selected_option = a.selected_option; if (a.answer_text !== null && a.answer_text !== undefined) o.answer_text = a.answer_text; });
+  const isAns = q => { const a = ans[q.id] || {}; return q.type === 'multiple_choice' ? a.selected_option !== undefined : String(a.answer_text || '').trim() !== ''; };
+  const payload = () => { const out = []; questions.forEach(q => { const a = ans[q.id] || {}; if (q.type === 'multiple_choice') { if (a.selected_option !== undefined) out.push({ question_id: q.id, selected_option: a.selected_option }); } else out.push({ question_id: q.id, answer_text: a.answer_text || '' }); }); return out; };
+  let savedKey = JSON.stringify(payload());
+  let index = (() => { const f = questions.findIndex(q => !isAns(q)); return f === -1 ? N - 1 : f; })();
+  const offset = Date.parse(d.server_time) - Date.now(), exp = Date.parse(d.attempt.expires_at); // server clock, so a wrong device clock cannot change the timer
+  const rem = () => Math.max(0, Math.ceil((exp - (Date.now() + offset)) / 1000));
+  const pad = n => String(n).padStart(2, '0');
+  const fmt = s => s >= 3600 ? pad(Math.floor(s / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60) : pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+  let secs = rem(), saveState = 'saved', submitting = false, navigating = false, error = null, away = null, finished = false, submitStarted = false;
+  const fsSupported = document.fullscreenEnabled === true;
+  let isFs = document.fullscreenElement != null, wasFs = isFs, fsWarn = false;
+  const gated = () => fsSupported && !isFs && !submitting, locked = () => secs === 0 || submitting || gated();
+
+  mount('<div class="qz"><header class="qz-head"><div class="qz-hin"><div class="qz-t"><h1>' + h(title) + '</h1><p id="qz-sub"></p></div>' +
+    '<div class="qz-r"><div class="qz-clock" id="qz-clock" role="timer" aria-label="Time left">' + icon('qzClock') + '<span id="qz-time"></span></div><span id="qz-save" class="qz-save" role="status"></span></div></div>' +
+    '<div class="qz-bar" role="progressbar" aria-label="Answered questions" aria-valuemin="0" aria-valuemax="' + N + '"><div id="qz-fill"></div></div></header>' +
+    '<main class="qz-main"><div class="qz-b" id="qz-banners"></div><nav class="qz-nav" id="qz-nav" aria-label="Question progress"></nav><section class="qz-card" id="qz-card"></section></main>' +
+    '<footer class="qz-foot"><div class="qz-fin" id="qz-foot"></div></footer></div>');
+
+  /* ----- painting (the question card is only redrawn when the question changes, so typing never loses focus) ----- */
+  const paintHead = () => {
+    $('#qz-sub').textContent = 'Question ' + (index + 1) + ' of ' + N;
+    $('#qz-time').textContent = fmt(secs); $('#qz-clock').classList.toggle('low', secs <= 300);
+    const n = questions.filter(isAns).length; $('#qz-fill').style.width = (n / N * 100) + '%'; $('#qz-fill').parentNode.setAttribute('aria-valuenow', n);
+    const s = $('#qz-save'); s.className = 'qz-save' + (saveState === 'error' ? ' err' : '');
+    s.innerHTML = saveState === 'error' ? icon('qzWarn') + 'Not saved <button type="button" class="qz-retry" data-qa="retry">' + icon('qzRetry') + 'Retry</button>' :
+      saveState === 'saving' ? '<span class="spin" style="display:inline-flex">' + icon('qzSpin') + '</span>Saving…' : saveState === 'saved' ? '<span class="ok" style="display:inline-flex">' + icon('qzCheck') + '</span>Saved' : 'Unsaved changes';
+  };
+  const paintBanners = () => {
+    $('#qz-banners').innerHTML =
+      (gated() ? '<section role="alert" class="qz-gate"><span class="ic">' + icon('qzExpand') + '</span><div><h2>' + (fsWarn ? 'You left fullscreen' : 'Fullscreen is required') + '</h2><p>' + (fsWarn ? 'This was recorded in your attempt log. ' : '') + 'Enter fullscreen to see and answer the questions. Your timer keeps running.</p></div>' +
+        '<button type="button" class="btn primary" data-qa="fs">' + icon('qzExpand') + (fsWarn ? 'Return to fullscreen' : 'Enter fullscreen') + '</button></section>' : '') +
+      (!fsSupported ? '<p class="qz-note">Fullscreen is not available in this browser, which is common on phones. You can still take the quiz normally.</p>' : '') +
+      (away !== null ? '<div role="status" class="qz-away"><span>This page was inactive for ' + away + ' ' + (away === 1 ? 'second' : 'seconds') + '. The timer kept running, and the event was recorded.</span><button type="button" data-qa="away">Dismiss</button></div>' : '') +
+      (error ? '<div role="alert" class="qz-err"><span>' + h(error) + '</span>' + (saveState === 'error' ? '<button type="button" class="btn sm" data-qa="retry">' + icon('qzRetry') + 'Retry save</button>' : '') + '</div>' : '');
+  };
+  const maxReach = () => { const f = questions.findIndex(q => !isAns(q)); return f === -1 ? N - 1 : f; };
+  const paintNav = () => {
+    const mr = maxReach(), lk = locked();
+    $('#qz-nav').innerHTML = questions.map((q, i) => '<button type="button" class="qz-n' + (i === index ? ' cur' : isAns(q) ? ' done' : '') + '" data-qa="go" data-i="' + i + '"' + (i > mr || lk ? ' disabled' : '') +
+      ' aria-label="Question ' + (i + 1) + (isAns(q) ? ', answered' : '') + '"' + (i === index ? ' aria-current="step"' : '') + '>' + (i + 1) + '</button>').join('');
+  };
+  const paintFoot = () => {
+    const lk = locked(), last = index === N - 1, ok = isAns(questions[index]);
+    $('#qz-foot').innerHTML = '<button type="button" class="btn" data-qa="prev"' + (index === 0 || navigating || lk ? ' disabled' : '') + '>' + icon('qzLeft') + '<span class="sm-up">Previous</span><span class="xs">Prev</span></button>' +
+      (!last ? '<button type="button" class="btn ghost" data-qa="submit"' + (lk ? ' disabled' : '') + '>Submit quiz</button>' : '') +
+      (last ? '<button type="button" class="btn primary" data-qa="submit"' + (lk ? ' disabled' : '') + '>' + (submitting ? 'Submitting…' : 'Submit quiz') + '</button>'
+        : '<button type="button" class="btn primary" data-qa="next"' + (!ok || navigating || lk ? ' disabled' : '') + '>' + (navigating ? 'Saving…' : 'Next') + icon('qzRight') + '</button>');
+    const hint = $('#qz-hint'); if (hint) hint.textContent = !ok && !last ? 'Answer this question to continue.' : '';
+  };
+  const paintLock = () => { const lk = locked(); $$('#qz-card input, #qz-card textarea').forEach(el => { el.disabled = lk; }); $$('#qz-card .qz-opt').forEach(el => el.classList.toggle('lock', lk)); };
+  const paintCard = () => {
+    const q = questions[index], a = ans[q.id] || {};
+    $('#qz-card').innerHTML = '<div class="qz-qh"><h2>' + h(q.prompt) + '</h2><span class="qz-pts">' + num(q.points) + ' ' + (Number(q.points) === 1 ? 'point' : 'points') + '</span></div>' +
+      (q.type === 'multiple_choice' ? '<fieldset class="qz-opts"><legend class="sr">Choose one answer</legend>' + (q.options || []).map((o, j) => '<label class="qz-opt' + (a.selected_option === j ? ' sel' : '') + '"><input type="radio" name="qz-' + h(q.id) + '" value="' + j + '"' + (a.selected_option === j ? ' checked' : '') + '><span>' + h(o) + '</span></label>').join('') + '</fieldset>'
+        : '<textarea data-qtext="' + h(q.id) + '" maxlength="20000" rows="8" aria-label="Response to question ' + (index + 1) + '">' + h(a.answer_text || '') + '</textarea>') + '<p class="qz-hint" id="qz-hint"></p>';
+    paintLock(); paintFoot();
+  };
+  const paintMeta = () => { paintHead(); paintNav(); paintFoot(); };
+  const paintAll = () => { paintHead(); paintBanners(); paintNav(); paintFoot(); paintLock(); };
+
+  /* ----- saving: one request at a time so saves cannot overwrite each other out of order ----- */
+  let queue = Promise.resolve(true), autosaveT = null;
+  const flush = () => {
+    const run = async () => {
+      const p = payload(), key = JSON.stringify(p);
+      if (key === savedKey) { saveState = 'saved'; paintHead(); return true; }
+      saveState = 'saving'; paintHead();
+      let ok = false;
+      try { const r = await A('quizzes.saveAnswers', { id: attemptId, answers: p }); if (r && r.expired) { finished = true; go('/quizzes/attempts/' + attemptId); return false; } ok = true; } catch (e) { ok = false; }
+      if (ok) { savedKey = key; error = null; saveState = JSON.stringify(payload()) === key ? 'saved' : 'unsaved'; } else saveState = 'error';
+      if (!finished) { paintBanners(); paintMeta(); } return ok;
+    };
+    queue = queue.then(run, run); return queue;
+  };
+  const changed = () => { if (submitStarted) return; saveState = JSON.stringify(payload()) === savedKey ? saveState : 'unsaved'; paintMeta(); clearTimeout(autosaveT); autosaveT = setTimeout(() => flush(), 700); };
+
+  async function goTo(t) {
+    if (navigating || locked() || t === index || t < 0 || t >= N) return;
+    navigating = true; paintFoot(); paintNav();
+    const ok = await flush(); navigating = false;
+    if (finished) return;
+    if (ok) { error = null; index = t; paintBanners(); paintCard(); paintMeta(); window.scrollTo(0, 0); }
+    else { error = 'Your latest changes could not be saved, so you stayed on this question. Retry, then continue.'; paintBanners(); paintMeta(); }
+  }
+  async function retry() { const ok = await flush(); if (ok) { error = null; paintBanners(); } }
+  async function submitAttempt() {
+    if (submitStarted) return; submitStarted = true; submitting = true; error = null; clearTimeout(autosaveT); paintAll();
+    try { await A('quizzes.submit', { id: attemptId, answers: payload() }); }
+    catch (e) { submitStarted = false; submitting = false; error = 'Submission failed. Your saved answers are still available; try submitting again.'; paintAll(); return; }
+    finished = true; clearInterval(tick); try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) { /* ignore */ }
+    go('/quizzes/attempts/' + attemptId);
+  }
+  function confirmSubmit() {
+    if (locked()) return;
+    const left = questions.filter(q => !isAns(q)).length;
+    const m = openModal({ title: 'Submit your quiz?', body: '<p style="margin:0">' + (left > 0 ? 'You have ' + left + ' unanswered ' + (left === 1 ? 'question' : 'questions') + '. ' : 'All questions are answered. ') + 'Submission is final.</p>',
+      footer: '<button class="btn ghost" data-modal-close>Keep working</button><button class="btn primary" id="qz-ok">Submit quiz</button>' });
+    $('#qz-ok', m.el).addEventListener('click', () => { m.el.remove(); submitAttempt(); });
+  }
+  const enterFs = () => { try { const r = document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => { error = 'Your browser did not allow fullscreen.'; paintBanners(); }); } catch (e) { error = 'Your browser did not allow fullscreen.'; paintBanners(); } };
+
+  /* ----- events ----- */
+  const root = $('#root');
+  const onClick = e => {
+    const b = e.target.closest('[data-qa]'); if (!b || b.disabled) return; const a = b.dataset.qa;
+    if (a === 'prev') goTo(index - 1); else if (a === 'next') goTo(index + 1); else if (a === 'go') goTo(parseInt(b.dataset.i, 10));
+    else if (a === 'submit') confirmSubmit(); else if (a === 'retry') retry(); else if (a === 'fs') enterFs(); else if (a === 'away') { away = null; paintBanners(); }
+  };
+  const onChange = e => { const r = e.target.closest('.qz-opt input[type=radio]'); if (!r || locked()) return; const q = questions[index]; ans[q.id] = { selected_option: parseInt(r.value, 10) }; $$('#qz-card .qz-opt').forEach(l => l.classList.toggle('sel', $('input', l).checked)); changed(); };
+  const onInput = e => { const t = e.target.closest('textarea[data-qtext]'); if (!t || locked()) return; ans[t.dataset.qtext] = { answer_text: t.value }; changed(); };
+  root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('input', onInput);
+  const ev = n => { if (!finished && !submitStarted) A('quizzes.event', { id: attemptId, event: n, client_time: new Date().toISOString() }).catch(() => {}); };
+  let hiddenAt = null;
+  const onVis = () => { if (document.hidden) { hiddenAt = Date.now(); ev('page_hidden'); return; } ev('page_visible'); if (hiddenAt !== null) { away = Math.round((Date.now() - hiddenAt) / 1000); hiddenAt = null; paintBanners(); } };
+  const onBlur = () => ev('window_blur'), onFocus = () => ev('window_focus');
+  const onFs = () => { const active = document.fullscreenElement != null; isFs = active; if (active) { wasFs = true; fsWarn = false; ev('fullscreen_entered'); } else if (wasFs) { wasFs = false; fsWarn = true; ev('fullscreen_exited'); } if (!finished) paintAll(); };
+  const onUnload = e => { if (saveState !== 'saved' && !submitting && !finished) { e.preventDefault(); e.returnValue = ''; } };
+  document.addEventListener('visibilitychange', onVis); window.addEventListener('blur', onBlur); window.addEventListener('focus', onFocus);
+  document.addEventListener('fullscreenchange', onFs); window.addEventListener('beforeunload', onUnload);
+  if (!fsSupported) ev('fullscreen_unsupported');
+
+  const tick = setInterval(() => { const s = rem(); if (s === secs) return; secs = s; paintHead(); if (s === 0) { paintAll(); submitAttempt(); } }, 1000); // the server enforces the deadline; this only submits on time
+  State.cleanup = () => {
+    clearInterval(tick); clearTimeout(autosaveT);
+    root.removeEventListener('click', onClick); root.removeEventListener('change', onChange); root.removeEventListener('input', onInput);
+    document.removeEventListener('visibilitychange', onVis); window.removeEventListener('blur', onBlur); window.removeEventListener('focus', onFocus);
+    document.removeEventListener('fullscreenchange', onFs); window.removeEventListener('beforeunload', onUnload);
+    if (!finished && JSON.stringify(payload()) !== savedKey) { try { A('quizzes.saveAnswers', { id: attemptId, answers: payload() }).catch(() => {}); } catch (e) { /* best effort */ } }
+    try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) { /* ignore */ }
+  };
+  paintBanners(); paintCard(); paintMeta(); paintLock();
+}
+</script>

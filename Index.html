@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Army Medical School Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<?!= include('Styles') ?>
+</head>
+<body>
+<div id="root" aria-live="polite"><div style="padding:40px;text-align:center" class="muted">Loading…</div></div>
+<noscript><p style="padding:24px">This portal needs JavaScript. Please enable it and reload.</p></noscript>
+<?!= include('Scripts') ?>
+<?!= include('PagesAuth') ?>
+<?!= include('PagesCore') ?>
+<?!= include('PagesAdmin') ?>
+<?!= include('PagesQuiz') ?>
+<script>
+/** Where to land on load: the real address-bar #hash (Apps Script API), else the iframe's own hash, else the page remembered before the refresh. */
+function bootPath() {
+  return new Promise(resolve => {
+    const clean = v => { v = String(v || ''); if (v && v.charAt(0) !== '/') { try { v = decodeURIComponent(v); } catch (e) { /* keep */ } } return v.charAt(0) === '/' ? v : ''; };
+    const own = clean((window.location.hash || '').replace(/^#/, ''));
+    if (own) return resolve(own);
+    let done = false; const fin = v => { if (!done) { done = true; resolve(clean(v) || clean(Store.sget('ams_last'))); } };
+    try { google.script.url.getLocation(loc => fin(loc && loc.hash)); setTimeout(() => fin(''), 1200); } catch (e) { fin(''); }
+  });
+}
+(async function boot() {
+  applyTheme();
+  const t = Store.sget('ams_token') || Store.get('ams_token');
+  if (t) {
+    State.token = t;
+    try { const d = await callApi('auth.me'); State.user = d.data.user; State.intake = d.data.intake; }
+    catch (e) { clearSession(); }
+  }
+  go((await bootPath()) || (State.user ? '/dashboard' : '/'));
+})();
+</script>
+</body>
+</html>
