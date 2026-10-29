@@ -1,25 +1,121 @@
+<style>
+/* ===== Announcements (admin): ported from ams-portal-v2 resources/js/pages/announcements/*.tsx ===== */
+.an-list{list-style:none;margin:0;padding:0;display:grid;gap:.75rem}
+.an-item{display:grid;gap:1rem;padding:1.25rem;transition:border-color .15s,box-shadow .15s}
+.an-item:hover{border-color:color-mix(in oklab,var(--foreground) 20%,transparent);box-shadow:0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1)}
+.an-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:.75rem}
+.an-subj{margin:0;font-size:14px;line-height:20px;font-weight:600;overflow-wrap:anywhere}
+.an-re{margin-right:.375rem;font-size:12px;font-weight:600;letter-spacing:.025em;color:var(--muted-foreground)}
+.an-meta{margin:.25rem 0 0;font-size:12px;line-height:16px;color:var(--muted-foreground);overflow-wrap:anywhere}
+.an-pills{display:flex;flex-wrap:wrap;gap:.5rem}
+.an-pills .statusbadge{gap:.25rem}.an-pills .statusbadge svg{width:.75rem;height:.75rem}
+.an-warn{margin:0;border-radius:.75rem;border:1px solid color-mix(in oklab,var(--rose-500) 25%,transparent);background:color-mix(in oklab,var(--rose-500) 5%,transparent);padding:.5rem .75rem;font-size:14px;color:var(--rose-600)}
+:root[data-theme="dark"] .an-warn{color:var(--rose-400)}
+.an-note{margin:0;border-radius:1rem;border:1px solid color-mix(in oklab,var(--amber-500) 25%,transparent);background:color-mix(in oklab,var(--amber-500) 5%,transparent);padding:.75rem 1rem;font-size:12px;color:var(--amber-700)}
+:root[data-theme="dark"] .an-note{color:var(--amber-400)}
+.an-acts{display:flex;flex-wrap:wrap;gap:.5rem;border-top:1px solid var(--border);padding-top:1rem}
+.an-acts .rm{margin-left:auto}
+.an-sh{border-bottom:1px solid var(--border);padding:1rem 1.25rem}.an-sh h2{margin:0;font-size:14px;font-weight:600}.an-sh p{margin:0;font-size:12px;line-height:16px;color:var(--muted-foreground)}
+.an-sb{padding:1.25rem}.an-sb>div:last-child{margin-bottom:0}
+.an-count{margin:0;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
+.an-pager{display:flex;align-items:center;justify-content:flex-end;gap:.5rem;padding:0 .25rem}
+.cf-body{display:grid;gap:1rem}
+.cf-sec{display:grid;gap:.5rem}.cf-sec+.cf-sec{border-top:1px solid var(--border);padding-top:1rem}.cf-sec h3{display:flex;align-items:center;gap:.5rem;margin:0;font-size:14px;font-weight:600}.cf-sec h3 svg{width:1rem;height:1rem}
+.cf-img{display:flex;max-height:60vh;width:100%;align-items:center;justify-content:center;overflow:hidden;border-radius:.75rem;border:1px solid var(--border);background:var(--muted)}.cf-img img{max-height:60vh;width:100%;object-fit:contain}
+.cf-pdf{display:none;height:55vh;width:100%;border:1px solid var(--border);border-radius:.75rem;background:var(--muted)}
+.cf-pdfm{display:flex;flex-direction:column;align-items:center;gap:.75rem;border:1px solid var(--border);border-radius:.75rem;background:color-mix(in oklab,var(--muted) 60%,transparent);padding:2rem 1rem;text-align:center}.cf-pdfm p{margin:0;font-size:14px;color:var(--muted-foreground)}.cf-pdfm svg{width:2rem;height:2rem;color:var(--muted-foreground)}
+.cf-open{display:none;align-items:center;gap:.25rem;font-size:12px;color:var(--muted-foreground)}.cf-open:hover{color:var(--foreground)}.cf-open svg{width:.75rem;height:.75rem}
+@media(min-width:640px){.cf-pdf{display:block}.cf-pdfm{display:none}.cf-open{display:inline-flex}}
+</style>
 <script>
 /* ===== Certificates, chain of command, announcements, recruitment, settings ===== */
-const certMime = m => ({ 'application/pdf': 'PDF', 'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP' }[m] || '');
-route('/certificates', async (p, q, id) => {
-  loadingShell('/certificates', 'Certificates');
-  const d = await A('certificates.list', { search: q.search, page: q.page }); if (!current(id)) return;
-  mount(shell('/certificates', 'Certificates', '', '<div class="toolbar">' + searchBox('Search trainees') + '</div><div class="card">' + table([{ h: 'Trainee', f: t => '<b>' + h(t.name) + '</b><div class="muted small">@' + h(t.username) + '</div>' }, { h: 'Account', cls: 'hide-sm', f: t => statusBadge(t.status) },
-    { h: 'Certificate', f: t => t.certificate ? statusBadge(t.certificate.status) + (t.certificate.number ? ' <span class="mono small">' + h(t.certificate.number) + '</span>' : '') + (t.certificate.mime ? ' <span class="muted small">' + certMime(t.certificate.mime) + '</span>' : '') : '<span class="muted">None</span>' },
-    { h: 'Issued', cls: 'hide-sm', f: t => t.certificate && t.certificate.issued_at ? h(fmtDT(t.certificate.issued_at)) : '—' },
-    { h: '', cls: 'right nowrap', f: t => { const c = t.certificate, issued = c && c.status === 'issued'; return (issued ? '<button class="btn sm" data-act="certPreview" data-id="' + h(c.id) + '">' + icon('eye') + 'View</button> <button class="btn sm" data-act="certDownload" data-id="' + h(c.id) + '">' + icon('download') + '</button> <button class="btn sm danger" data-act="certRevoke" data-id="' + h(c.id) + '">Revoke</button>' : (t.status === 'active' ? '<button class="btn sm primary" data-act="certIssue" data-id="' + h(t.id) + '" data-name="' + h(t.name) + '">' + icon('upload') + (c && c.status === 'revoked' ? 'Re-issue' : 'Issue') + '</button>' : '')); } }], d.trainees, 'No trainees found.') + pager(d.meta) + '</div>'));
+/* ---------- certificates (ported 1:1 from resources/js/pages/certificates/index.tsx) ---------- */
+Object.assign(ICONS, {
+  file: 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7zM14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8',
+  externalLink: 'M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
+  settings2: 'M20 7h-9M14 17H5M20 17a3 3 0 1 0-6 0 3 3 0 0 0 6 0M10 7a3 3 0 1 0-6 0 3 3 0 0 0 6 0'
 });
-Actions.certIssue = el => {
-  openModal({ title: 'Issue certificate — ' + el.dataset.name, body: '<form data-form="certIssue" data-id="' + h(el.dataset.id) + '" novalidate><div class="field"><label for="f-file">Certificate file</label><input type="file" name="file" id="f-file" accept="application/pdf,image/jpeg,image/png,image/webp" required><div class="hint">PDF, JPG, PNG or WebP, up to 5 MB. Stored privately in Google Drive.</div></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-modal-close>Cancel</button><button class="btn primary" type="submit">Upload and issue</button></div></form>' });
+const CF = { modal: null, urls: [], local: null };
+const CF_TONE = { issued: 'emerald', revoked: 'rose', pending: 'amber', none: 'muted' };
+const cfPill = c => '<span class="statusbadge t-' + CF_TONE[c ? c.status : 'none'] + '" style="text-transform:capitalize">' + h(c ? c.status : 'Not issued') + '</span>';
+const cfDate = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(); };
+const cfClose = () => { if (CF.modal) { const m = CF.modal; CF.modal = null; m.close(); } };
+const cfReload = () => go(State.path + qs(State.q), false, true);
+/** Image or PDF preview (FilePreview in the original): PDFs use an iframe on wide screens and an "Open PDF" button on phones. */
+function cfPreview(src, mime, title) {
+  const img = String(mime || '').indexOf('image/') === 0;
+  return '<div style="display:grid;gap:.5rem">' + (img
+    ? '<div class="cf-img"><img src="' + src + '" alt="' + h(title) + '"></div>'
+    : '<iframe class="cf-pdf" src="' + src + '" title="' + h(title) + '"></iframe><div class="cf-pdfm">' + icon('file') + '<p>PDF previews are not supported inside this view on mobile.</p><a class="btn sm primary rx" href="' + src + '" target="_blank" rel="noopener">' + icon('externalLink') + 'Open PDF</a></div>') +
+    '<a class="cf-open" href="' + src + '" target="_blank" rel="noopener">' + icon('externalLink') + 'Preview not showing? Open in a new tab</a></div>';
+}
+
+route('/certificates', async (p, q, id) => {
+  loadingShell('/certificates', '');
+  const d = await A('certificates.list', { search: q.search, page: q.page }); if (!current(id)) return;
+  State.cfRows = {}; d.trainees.forEach(t => { State.cfRows[t.id] = t; });
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap"><span class="chipicon t-violet" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--violet-500) 15%,transparent)">' + bIcon('award', 24) + '</span>' +
+    '<div><h1>Certificates</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Open Manage to issue, preview or revoke a certificate. Files are private and served through the portal.</p></div></div>' +
+    '<form data-form="certSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div><button class="btn primary rx" type="submit">Search</button></form></div>';
+  const rows = d.trainees.length === 0 ? '<tr><td colspan="4" class="muted center" style="padding:3rem 1.25rem">No trainees found.</td></tr>'
+    : d.trainees.map(t => { const c = t.certificate;
+      return '<tr style="vertical-align:top"><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(t.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + '</div><div class="muted" style="font-size:12px">@' + h(t.username) + '</div></div></div></td>' +
+        '<td>' + cfPill(c) + (c && c.number ? '<div class="muted" style="margin-top:.25rem;font-size:12px">' + h(c.number) + '</div>' : '') + '</td>' +
+        '<td class="muted">' + (c && c.issued_at ? h(cfDate(c.issued_at)) : '-') + '</td>' +
+        '<td style="padding-right:1.25rem"><button type="button" class="btn sm rx" data-act="certManage" data-id="' + h(t.id) + '">' + icon('settings2') + 'Manage</button></td></tr>'; }).join('');
+  const th = '<th style="padding-left:1.25rem">Trainee</th><th>Certificate</th><th>Issued</th><th style="padding-right:1.25rem">Actions</th>';
+  mount(shell('/certificates', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + gpager(d.meta) + '</div>', '', 'Certificates'));
+});
+Forms.certSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
+
+/** Manage dialog (ManageDialog in the original): current file preview, issue / re-issue with a local preview, revoke. */
+Actions.certManage = el => {
+  const t = (State.cfRows || {})[el.dataset.id]; if (!t) return;
+  const c = t.certificate, issued = !!c && c.status === 'issued', revoked = !!c && c.status === 'revoked';
+  const body = '<div class="cf-body"><p class="muted" style="margin:0;font-size:14px;overflow-wrap:anywhere">' + h(t.name) + ' (@' + h(t.username) + ')' + (c && c.number ? ' · ' + h(c.number) : '') + '</p>' +
+    '<div class="row" style="gap:.5rem">' + cfPill(c) + (c && c.issued_at ? '<span class="muted" style="font-size:12px">Issued ' + h(cfDate(c.issued_at)) + '</span>' : '') + '</div>' +
+    (c && c.has_file ? '<section class="cf-sec"><h3>' + icon('file') + (issued ? 'Issued certificate' : 'Previous file (revoked)') + '</h3><div id="cf-prev"><div class="skeleton"></div><div class="skeleton" style="width:70%"></div></div><div><button type="button" class="btn sm rx" data-act="certDownload" data-id="' + h(c.id) + '">Download</button></div></section>' : '') +
+    (!issued ? '<section class="cf-sec"><h3>' + (revoked ? 'Re-issue certificate' : 'Issue certificate') + '</h3><form data-form="certIssue" data-id="' + h(t.id) + '" class="cf-body" novalidate>' +
+      '<div class="field" style="margin:0"><input type="file" name="file" id="f-file" accept="application/pdf,image/jpeg,image/png,image/webp" required data-cf-file aria-label="Certificate file for ' + h(t.name) + '"><div class="hint">PDF, JPG, PNG or WebP, up to 5 MB.</div></div><div id="cf-local"></div>' +
+      '<div class="row" style="justify-content:flex-end;gap:.5rem"><button type="button" class="btn ghost rx" data-modal-close>Cancel</button><button type="submit" class="btn primary rx" disabled>' + (revoked ? 'Re-issue' : 'Issue') + '</button></div></form></section>' : '') +
+    (issued ? '<section class="cf-sec"><div><button type="button" class="btn sm danger solid rx" data-act="certRevoke" data-id="' + h(c.id) + '" data-number="' + h(c.number || '') + '">Revoke certificate</button></div></section>' : '') + '</div>';
+  CF.urls = []; CF.local = null;
+  const m = CF.modal = openModal({ title: 'Manage certificate', wide: true, body, onClose: () => { CF.urls.concat(CF.local ? [CF.local] : []).forEach(u => URL.revokeObjectURL(u)); CF.urls = []; CF.local = null; if (CF.modal === m) CF.modal = null; } });
+  if (c && c.has_file) {
+    A('certificates.preview', { id: c.id }).then(f => {
+      const box = $('#cf-prev', m.el); if (!box) return;
+      const url = URL.createObjectURL(saveBlob(f.base64, f.mime)); CF.urls.push(url);
+      box.innerHTML = cfPreview(url, f.mime, 'Certificate ' + (c.number || ''));
+    }).catch(e => { const box = $('#cf-prev', m.el); if (box) box.innerHTML = '<div class="alert warn" style="margin:0">' + h(e.message || 'The preview is unavailable.') + '</div>'; });
+  }
 };
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.matches || !t.matches('input[data-cf-file]')) return;
+  const file = t.files[0], box = $('#cf-local'), btn = $('[type=submit]', t.closest('form'));
+  if (CF.local) { URL.revokeObjectURL(CF.local); CF.local = null; }
+  if (btn) btn.disabled = !file;
+  if (!box) return;
+  if (!file) { box.innerHTML = ''; return; }
+  CF.local = URL.createObjectURL(file);
+  box.innerHTML = '<p class="muted" style="margin:0 0 .25rem;font-size:12px;overflow-wrap:anywhere">Preview of ' + h(file.name) + '. Not issued until you confirm.</p>' + cfPreview(CF.local, file.type, 'Selected file preview');
+});
 Forms.certIssue = async f => {
-  const file = $('[name=file]', f).files[0];
+  const file = $('[name=file]', f).files[0], btn = $('[type=submit]', f);
   if (!file) { clearErrors(f); return showErrors(f, { code: 'VALIDATION_ERROR', message: 'Choose a file.', fields: { file: 'Choose a file.' } }); }
   if (file.size > 5 * 1024 * 1024) return showErrors(f, { code: 'VALIDATION_ERROR', message: 'The certificate must be 5 MB or smaller.', fields: { file: 'The certificate must be 5 MB or smaller.' } });
-  const b64 = await fileToBase64(file);
-  await submitForm(f, 'certificates.issue', { trainee_id: f.dataset.id, file: { name: file.name, base64: b64 } }, () => { const o = f.closest('.overlay'); if (o) o.remove(); go(State.path + qs(State.q)); });
+  const label = btn.textContent; btn.disabled = true; btn.textContent = 'Uploading…'; clearErrors(f);
+  try {
+    const b64 = await fileToBase64(file);
+    await A('certificates.issue', { trainee_id: f.dataset.id, file: { name: file.name, base64: b64 } });
+    if (A.lastMessage) toast(A.lastMessage, 'ok');
+    cfClose(); cfReload();
+  } catch (e) { showErrors(f, e); }
+  finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = label; } }
 };
-Actions.certRevoke = async el => { const r = await confirmDialog({ title: 'Revoke certificate?', message: 'The trainee will no longer be able to view or download it.', confirmText: 'Revoke', danger: true, reason: 'Reason (optional)' }); if (!r) return; await busy(el, async () => { await A('certificates.revoke', { id: el.dataset.id, reason: r.reason }); toast(A.lastMessage, 'ok'); go(State.path + qs(State.q)); }); };
+Actions.certRevoke = async el => {
+  const ok = await confirmDialog({ title: 'Revoke certificate?', message: 'Revoke ' + (el.dataset.number || 'this certificate') + '? The trainee will lose access to the file.', confirmText: 'Revoke certificate', danger: true }); if (!ok) return;
+  await busy(el, async () => { await A('certificates.revoke', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); cfClose(); cfReload(); });
+};
 Actions.certDownload = async el => busy(el, async () => { const f = await A('certificates.download', { id: el.dataset.id }); const url = URL.createObjectURL(saveBlob(f.base64, f.mime)); const a = document.createElement('a'); a.href = url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); });
 Actions.certPreview = async el => busy(el, async () => {
   const f = await A('certificates.preview', { id: el.dataset.id }), url = URL.createObjectURL(saveBlob(f.base64, f.mime));
@@ -42,24 +138,75 @@ Actions.chainEdit = el => {
 Forms.chainSave = async f => { const v = formVals(f); if (f.dataset.id) v.id = f.dataset.id; await submitForm(f, f.dataset.id ? 'chain.update' : 'chain.create', v, () => { const o = f.closest('.overlay'); if (o) o.remove(); go(State.path); }); };
 Actions.chainDelete = async el => { const ok = await confirmDialog({ title: 'Remove entry?', message: 'It will disappear from the public page.', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('chain.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path); }); };
 
-/* ---------- announcements ---------- */
+/* ---------- announcements (ported 1:1 from resources/js/pages/announcements/index.tsx, form.tsx, create.tsx and edit.tsx) ---------- */
+Object.assign(ICONS, { pinOff: 'M12 17v5M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89M2 2l20 20M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11' });
+const AN_DISCORD = { not_sent: ['muted', 'Discord: not sent'], sending: ['amber', 'Discord: sending…'], sent: ['emerald', 'Discord: sent'], failed: ['rose', 'Discord: failed'] };
+/** 14 x 14 (size-14) amber megaphone tile used in the page headers. */
+const anTile = () => '<span class="chipicon t-amber" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--amber-500) 15%,transparent)">' + bIcon('announce', 24) + '</span>';
+/** inner must already be escaped HTML. */
+const anPill = (tone, inner, big) => '<span class="statusbadge t-' + tone + '"' + (big ? ' style="padding:.375rem .75rem;font-size:14px;font-weight:600"' : '') + '>' + inner + '</span>';
+const anBack = () => '<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#/announcements" data-go="/announcements">' + icon('arrowLeft') + 'Back</a>';
+const anHead = (title, sub, right, trunc) => {
+  const t = trunc ? ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap' : '';
+  return '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0">' + anTile() + '<div style="min-width:0"><h1' + (trunc ? ' style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"' : '') + '>' + h(title) + '</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px' + t + '">' + h(sub) + '</p></div></div>' + (right ? '<div class="row" style="gap:.5rem">' + right + '</div>' : '') + '</div>';
+};
+const anCrumbs = last => [{ t: 'Announcements', to: '/announcements' }, last];
+
 route('/announcements', async (p, q, id) => {
-  loadingShell('/announcements', 'Announcements');
+  loadingShell('/announcements', '');
   const d = await A('announcements.list', { page: q.page }); if (!current(id)) return;
-  const items = d.announcements.map(a => '<div class="card" style="margin-bottom:14px"><div class="bd">' + memoHtml(Object.assign({}, a, { published_label: a.is_published ? 'Published ' + a.published_label : 'Draft' }), '<span>' + (a.is_published ? statusBadge('open').replace('open', 'Published') : badge('Draft')) + ' ' + (a.is_published ? 'Discord: ' + statusBadge(a.discord_status) : '') + '</span>') +
-    (a.discord_error && a.is_published ? '<div class="alert warn" style="margin-top:10px">' + h(a.discord_error) + '</div>' : '') + '<div class="row" style="margin-top:12px"><a class="btn sm" href="#/announcements/' + h(a.id) + '/edit" data-go="/announcements/' + h(a.id) + '/edit">' + icon('edit') + 'Edit</a>' +
-    (a.is_published ? '<button class="btn sm" data-act="annDo" data-op="unpublish" data-id="' + h(a.id) + '">Unpublish</button><button class="btn sm" data-act="annDo" data-op="' + (a.is_pinned ? 'unpin' : 'pin') + '" data-id="' + h(a.id) + '">' + icon('pin') + (a.is_pinned ? 'Unpin' : 'Pin') + '</button>' + (a.discord_status !== 'sent' ? '<button class="btn sm" data-act="annDo" data-op="retry" data-id="' + h(a.id) + '">' + icon('refresh') + (a.discord_status === 'failed' ? 'Retry Discord' : 'Send to Discord') + '</button>' : '') : '<button class="btn sm primary" data-act="annDo" data-op="publish" data-id="' + h(a.id) + '">Publish</button>') +
-    '<button class="btn sm danger" data-act="annDelete" data-id="' + h(a.id) + '">' + icon('trash') + 'Delete</button></div></div></div>').join('');
-  mount(shell('/announcements', 'Announcements', '<a class="btn primary" href="#/announcements/create" data-go="/announcements/create">' + icon('plus') + 'New announcement</a>', (items || '<div class="card">' + emptyState('No announcements yet.', 'announce') + '</div>') + '<div class="card">' + pager(d.meta) + '</div>'));
+  const items = d.announcements.map(a => {
+    const dl = AN_DISCORD[a.discord_status] || AN_DISCORD.not_sent, pub = a.is_published, did = ' data-id="' + h(a.id) + '"';
+    const pills = anPill(pub ? 'sky' : 'muted', pub ? 'Published ' + h(a.published_label) : 'Draft') + (pub && a.is_pinned ? anPill('amber', icon('pin') + 'Pinned') : '') + (pub ? anPill(dl[0], h(dl[1])) : '');
+    const warn = pub && a.discord_status === 'failed' ? '<p class="an-warn">' + h(a.discord_error || 'Discord delivery failed.') + ' The announcement is live in the portal; retry to post it to Discord.</p>' : '';
+    const acts = '<div class="an-acts"><a class="btn sm rx" href="#/announcements/' + h(a.id) + '/edit" data-go="/announcements/' + h(a.id) + '/edit">Edit</a>' +
+      (!pub ? '<button class="btn sm primary rx" data-act="annDo" data-op="publish"' + did + '>Publish</button>' : '') +
+      (pub ? '<button class="btn sm rx" data-act="annDo" data-op="unpublish"' + did + '>Unpublish</button>' : '') +
+      (pub ? '<button class="btn sm rx" data-act="annDo" data-op="' + (a.is_pinned ? 'unpin' : 'pin') + '"' + did + '>' + icon(a.is_pinned ? 'pinOff' : 'pin') + (a.is_pinned ? 'Unpin' : 'Pin') + '</button>' : '') +
+      (pub && (a.discord_status === 'failed' || a.discord_status === 'sending') ? '<button class="btn sm primary rx" data-act="annDo" data-op="retry"' + did + '>Retry Discord</button>' : '') +
+      '<button class="btn sm danger solid rx rm" data-act="annDelete"' + did + '>Remove</button></div>';
+    return '<li class="dcard an-item"><div class="an-top"><div style="min-width:0"><p class="an-subj"><span class="an-re">RE:</span>' + h(a.subject) + '</p><p class="an-meta">To: ' + h(a.recipient) + ' · From: ' + h(a.sender) + (a.author ? ' · by ' + h(a.author) : '') + '</p></div><div class="an-pills">' + pills + '</div></div>' + warn + acts + '</li>';
+  }).join('');
+  const m = d.meta, pg = m && m.last_page > 1 ? '<div class="an-pager">' + (m.page > 1 ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page - 1) + '">Newer</button>' : '') + (m.page < m.last_page ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page + 1) + '">Older</button>' : '') + '</div>' : '';
+  const empty = d.announcements.length === 0 ? '<div class="gempty">' + icon('announce') + '<p style="margin:0;font-weight:500;color:var(--foreground)">No announcements yet</p><p style="margin:0">Create one to share it with trainees.</p></div>' : '';
+  const body = '<div class="dg">' + anHead('Announcements', 'Draft, publish and pin notices shown on the public page', '<a class="btn primary rx" href="#/announcements/create" data-go="/announcements/create">' + icon('plus') + 'New announcement</a>') + empty + (items ? '<ul class="an-list">' + items + '</ul>' : '') + pg + '</div>';
+  mount(shell('/announcements', '', '', body, '', 'Announcements'));
 });
-const annForm = a => '<form data-form="annSave" ' + (a ? 'data-id="' + h(a.id) + '"' : '') + ' novalidate>' + field('To', input('recipient', { value: a && a.recipient, required: true, max: 150 })) + field('From', input('sender', { value: a && a.sender, required: true, max: 150 })) + field('RE', input('subject', { value: a && a.subject, required: true, max: 150 })) +
-  field('Context', '<textarea name="body" maxlength="3000" required style="min-height:160px">' + h(a && a.body) + '</textarea>') + field('Name / signature', input('signature', { value: a && a.signature, required: true, max: 150 })) +
-  '<label class="check" style="margin-bottom:14px"><input type="checkbox" name="publish"' + (a && a.is_published ? ' checked disabled' : '') + '> Publish now (also posts to Discord when configured)</label><div class="row"><button class="btn primary" type="submit">Save</button><a class="btn" href="#/announcements" data-go="/announcements">Cancel</a></div></form>';
-route('/announcements/create', async () => { mount(shell('/announcements', 'New announcement', '', '<div class="card" style="max-width:700px"><div class="bd">' + annForm(null) + '</div></div>')); });
-route('/announcements/:id/edit', async (p, q, id) => { loadingShell('/announcements', 'Edit announcement'); const d = await A('announcements.get', { id: p.id }); if (!current(id)) return; mount(shell('/announcements', 'Edit announcement', '', '<div class="card" style="max-width:700px"><div class="bd">' + annForm(d.announcement) + '</div></div>')); });
-Forms.annSave = async f => { const v = formVals(f); if (f.dataset.id) v.id = f.dataset.id; await submitForm(f, f.dataset.id ? 'announcements.update' : 'announcements.create', v, () => go('/announcements')); };
-Actions.annDo = async el => busy(el, async () => { await A('announcements.' + el.dataset.op, { id: el.dataset.id }); const m = A.lastMessage; if (m) toast(m, /failed/i.test(m) ? 'bad' : 'ok'); go(State.path + qs(State.q)); });
-Actions.annDelete = async el => { const ok = await confirmDialog({ title: 'Delete announcement?', message: 'It is removed from the portal. Messages already posted to Discord are not deleted.', confirmText: 'Delete', danger: true }); if (!ok) return; await busy(el, async () => { await A('announcements.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path + qs(State.q)); }); };
+
+const anSection = (title, sub, inner) => '<section class="dcard"><header class="an-sh"><h2>' + h(title) + '</h2>' + (sub ? '<p>' + h(sub) + '</p>' : '') + '</header><div class="an-sb">' + inner + '</div></section>';
+const anInput = (name, label, ph, val) => bField(label, 'f-' + name, rxi(input(name, { value: val, max: 150, ph: ph })));
+function annForm(a) {
+  const v = k => (a && a[k] !== null && a[k] !== undefined ? a[k] : ''), published = !!(a && a.is_published), len = String(v('body')).length;
+  return '<form data-form="annSave" ' + (a ? 'data-id="' + h(a.id) + '"' : '') + ' class="dg" novalidate>' +
+    anSection('Memo header', 'Shown as TO, FROM and RE on the public page.', anInput('recipient', 'To', 'All Medical Trainees', v('recipient')) + anInput('sender', 'From', 'Office of the Dean of Medicine', v('sender')) + anInput('subject', 'RE:', 'Subject', v('subject'))) +
+    anSection('Message', '', bField('Context', 'f-body', '<textarea class="rx" name="body" id="f-body" rows="10" maxlength="3000" data-count="3000">' + h(v('body')) + '</textarea><p class="an-count muted" id="an-count">' + len + '/3000</p>') + anInput('signature', 'Name / signature', '[RANK] [USERNAME], [POSITION]', v('signature'))) +
+    (published && a.discord_status === 'sent' ? '<p class="an-note">Edits update the portal only; the message already posted in Discord is not changed.</p>' : '') +
+    '<div class="an-form-acts row" style="gap:.75rem"><button type="submit" class="btn rx">' + (a ? 'Save changes' : 'Save as draft') + '</button>' +
+    (!published ? '<button type="button" class="btn primary rx" data-act="annPublish">' + (a ? 'Save &amp; publish' : 'Publish now') + '</button>' : '') + '</div></form>';
+}
+document.addEventListener('input', e => { const t = e.target; if (t && t.matches && t.matches('textarea[data-count]')) { const c = document.getElementById('an-count'); if (c) c.textContent = t.value.length + '/' + t.dataset.count; } });
+
+route('/announcements/create', async () => {
+  mount(shell('/announcements', '', '', '<div style="max-width:48rem;margin:0 auto"><div class="dg">' + anHead('New announcement', 'Save as draft or publish to the portal and Discord', anBack()) + annForm(null) + '</div></div>', '', anCrumbs({ t: 'New', to: '/announcements/create' })));
+});
+route('/announcements/:id/edit', async (p, q, id) => {
+  loadingShell('/announcements', '');
+  const d = await A('announcements.get', { id: p.id }); if (!current(id)) return;
+  const a = d.announcement;
+  mount(shell('/announcements', '', '', '<div style="max-width:48rem;margin:0 auto"><div class="dg">' + anHead('Edit announcement', 'RE: ' + a.subject, anPill(a.is_published ? 'emerald' : 'muted', a.is_published ? 'Published' : 'Draft', true) + anBack(), true) + annForm(a) + '</div></div>', '', anCrumbs({ t: 'Edit', to: '/announcements' })));
+});
+async function annSubmit(f, btn, publish) {
+  const v = formVals(f); v.publish = !!publish; if (f.dataset.id) v.id = f.dataset.id;
+  const all = $$('.an-form-acts button', f), label = btn ? btn.textContent : '';
+  all.forEach(b => { b.disabled = true; }); if (btn) btn.textContent = 'Saving…'; clearErrors(f);
+  try { await A(f.dataset.id ? 'announcements.update' : 'announcements.create', v); if (A.lastMessage) toast(A.lastMessage, /failed/i.test(A.lastMessage) ? 'bad' : 'ok'); await go('/announcements'); }
+  catch (e) { showErrors(f, e); }
+  finally { if (btn && btn.isConnected) btn.textContent = label; all.forEach(b => { if (b.isConnected) b.disabled = false; }); }
+}
+Forms.annSave = async (f, e) => annSubmit(f, (e && e.submitter) || $('[type=submit]', f), false);
+Actions.annPublish = async el => annSubmit(el.closest('form'), el, true);
+Actions.annDo = async el => busy(el, async () => { await A('announcements.' + el.dataset.op, { id: el.dataset.id }); const m = A.lastMessage; if (m) toast(m, /failed/i.test(m) ? 'bad' : 'ok'); go(State.path + qs(State.q), false, true); });
+Actions.annDelete = async el => { const ok = await confirmDialog({ title: 'Remove announcement?', message: 'Remove this announcement? A copy already in Discord is not deleted.', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('announcements.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path + qs(State.q), false, true); }); };
 
 /* ---------- recruitment (intake) ---------- */
 route('/intake', async (p, q, id) => {
