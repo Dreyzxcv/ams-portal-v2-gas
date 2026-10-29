@@ -174,37 +174,98 @@ function showCredentials(c, title) {
     footer: '<button class="btn" data-act="copyCreds">Copy both</button><button class="btn primary" data-modal-close>Done</button>' });
   Actions.copyCreds = () => { const t = 'Username: ' + c.username + '\nTemporary password: ' + c.password; try { navigator.clipboard.writeText(t).then(() => toast('Copied.', 'ok')); } catch (e) { $('#cr-p', m.el).select(); document.execCommand('copy'); toast('Copied.', 'ok'); } };
 }
+const uTone = s => (s === 'active' ? 'emerald' : s === 'suspended' ? 'rose' : 'muted');
+const uCap = s => { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
+const uPill = (s, big) => `<span class="statusbadge t-${uTone(s)}"${big ? ' style="padding:.375rem .75rem;font-size:14px;font-weight:600"' : ''}>${h(uCap(s))}</span>`;
+const uTile = () => '<span class="chipicon t-violet" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--violet-500) 15%,transparent)">' + bIcon('users', 24) + '</span>';
+const uBack = (to, label) => `<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#${to}" data-go="${to}">${icon('arrowLeft')}${label}</a>`;
+const uSelStyle = 'width:auto;height:2.25rem;border-radius:.75rem;background:color-mix(in oklab,var(--background) 70%,transparent)';
+const roleOpts = rs => rs.map(r => ({ value: r.value, label: r.label }));
+const uPager = m => {
+  if (!m) return '';
+  const from = m.total ? (m.page - 1) * m.per_page + 1 : 0, to = Math.min(m.total, m.page * m.per_page);
+  return '<div class="gpager"><p class="muted" style="margin:0">' + (m.total === 0 ? 'No users' : 'Showing ' + from + ' to ' + to + ' of ' + m.total) + '</p><div class="row" style="gap:.5rem">' +
+    (m.page > 1 ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page - 1) + '">Previous</button>' : '') +
+    (m.page < m.last_page ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page + 1) + '">Next</button>' : '') + '</div></div>';
+};
+
+/* ---------- index ---------- */
 route('/users', async (p, q, id) => {
-  loadingShell('/users', 'Users');
+  loadingShell('/users', '');
   const d = await A('users.list', { search: q.search, role: q.role, status: q.status, page: q.page });
   if (!current(id)) return;
-  const t = '<div class="toolbar">' + searchBox('Search name, username or email') + '<select data-filter="role" aria-label="Role"><option value="">All roles</option>' + d.roles.map(r => '<option value="' + r.value + '"' + (q.role === r.value ? ' selected' : '') + '>' + h(r.label) + '</option>').join('') + '</select><select data-filter="status" aria-label="Status"><option value="">All statuses</option>' + d.statuses.map(s => '<option value="' + s + '"' + (q.status === s ? ' selected' : '') + '>' + h(s) + '</option>').join('') + '</select></div>';
-  const tbl = table([{ h: 'Name', f: u => '<b>' + h(u.name) + '</b><div class="muted small">@' + h(u.username) + '</div>' }, { h: 'Email', cls: 'hide-sm', f: u => h(u.email || '—') }, { h: 'Role', f: u => h(u.role_label) }, { h: 'Status', f: u => statusBadge(u.status) + (u.force_password_change ? ' ' + badge('temp password', 'warn') : '') },
-    { h: 'Last sign-in', cls: 'hide-sm', f: u => h(fmtDT(u.last_login_at)) }, { h: '', cls: 'right', f: u => '<a class="btn sm" href="#/users/' + h(u.id) + '/edit" data-go="/users/' + h(u.id) + '/edit">' + icon('edit') + 'Edit</a>' }], d.users, 'No users match your filters.');
-  mount(shell('/users', 'Users', '<a class="btn primary" href="#/users/create" data-go="/users/create">' + icon('plus') + 'New user</a>', t + '<div class="card">' + tbl + pager(d.meta) + '</div>'));
+  const roleSel = '<select data-filter="role" aria-label="Filter by role" style="' + uSelStyle + '"><option value="">All roles</option>' +
+    d.roles.map(r => '<option value="' + h(r.value) + '"' + (q.role === r.value ? ' selected' : '') + '>' + h(r.label) + '</option>').join('') + '</select>';
+  const statusSel = '<select data-filter="status" aria-label="Filter by status" style="' + uSelStyle + ';text-transform:capitalize"><option value="">All statuses</option>' +
+    d.statuses.map(s => '<option value="' + h(s) + '"' + (q.status === s ? ' selected' : '') + '>' + h(s) + '</option>').join('') + '</select>';
+  const head = '<div class="ghead"><div><h1>Users</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Create accounts, assign roles and manage access</p></div>' +
+    '<div class="row" style="gap:.5rem"><form data-form="userSearch" class="row" style="gap:.5rem" novalidate>' +
+    '<div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:14rem" placeholder="Search name, username or email" value="' + h(q.search || '') + '" aria-label="Search users"></div>' +
+    roleSel + statusSel +
+    '<button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Search</button></form>' +
+    '<a class="btn primary rx" href="#/users/create" data-go="/users/create">' + icon('plus') + 'New user</a></div></div>';
+  const rows = d.users.length === 0
+    ? '<tr><td colspan="5" class="muted center" style="padding:3rem 1.25rem">No users match these filters.</td></tr>'
+    : d.users.map(u => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(u.name)) + '</span>' +
+      '<div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(u.name) + '</div>' +
+      '<div class="muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@' + h(u.username) + ' · ' + h(u.email || 'No email') + '</div></div></div></td>' +
+      '<td><span class="statusbadge t-violet">' + h(u.role_label) + '</span></td>' +
+      '<td>' + uPill(u.status) + (u.force_password_change ? '<div class="muted" style="margin-top:.25rem;font-size:12px">Password change pending</div>' : '') + '</td>' +
+      '<td class="muted">' + (u.last_login_at ? h(new Date(u.last_login_at).toLocaleString()) : 'Never') + '</td>' +
+      '<td class="right" style="padding-right:1.25rem"><a class="btn sm rx" href="#/users/' + h(u.id) + '/edit" data-go="/users/' + h(u.id) + '/edit">Manage</a></td></tr>').join('');
+  const th = '<th style="padding-left:1.25rem">User</th><th>Role</th><th>Status</th><th>Last login</th><th style="padding-right:1.25rem"></th>';
+  mount(shell('/users', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + uPager(d.meta) + '</div>', '', 'Users'));
 });
-const roleOpts = rs => rs.map(r => ({ value: r.value, label: r.label }));
+Forms.userSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
+
+/* ---------- create ---------- */
 route('/users/create', async (p, q, id) => {
-  loadingShell('/users', 'New user');
+  loadingShell('/users', '');
   const d = await A('users.list', { page: 1 }); if (!current(id)) return;
-  mount(shell('/users', 'New user', '', '<div class="card" style="max-width:560px"><div class="bd"><form data-form="userCreate" novalidate>' + field('Full name', input('name', { required: true, max: 255 })) + field('Username', input('username', { required: true, max: 50, auto: 'off' }), { hint: '3–50 characters: letters, digits, dot, underscore or hyphen.' }) +
-    field('Email (optional)', input('email', { type: 'email', max: 255 }), { hint: 'If empty, the user is asked to add and verify an email at first sign-in.' }) + field('Role', select('role', roleOpts(d.roles), 'trainee')) +
-    '<div class="row"><button class="btn primary" type="submit">Create user</button><a class="btn" href="#/users" data-go="/users">Cancel</a></div></form></div></div>'));
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap">' + uTile() + '<div><h1>New user</h1><p class="muted" style="margin:0;font-size:14px">A temporary password is generated and shown once after you save</p></div></div></div>';
+  const form = '<div class="dcard" style="padding:1.5rem"><form data-form="userCreate" novalidate>' +
+    bField('Display name', 'f-name', rxi(input('name', { required: true, max: 255, auto: 'off' }))) +
+    bField('Username', 'f-username', rxi(input('username', { required: true, max: 50, auto: 'off' })) + '<p class="muted" style="margin:0;font-size:12px">3 to 50 characters: letters, digits, dot, underscore or hyphen. It cannot be changed later.</p>') +
+    bField('Role', 'f-role', rxi(select('role', roleOpts(d.roles), 'trainee'))) +
+    '<div class="row" style="gap:.75rem;padding-top:.25rem"><button class="btn primary rx" type="submit">Create user</button><a class="btn ghost rx" href="#/users" data-go="/users">Cancel</a></div></form></div>';
+  mount(shell('/users', '', '', '<div style="max-width:42rem;margin:0 auto"><div class="dg">' + head + form + '</div></div>', '', [{ t: 'Users', to: '/users' }, { t: 'New user', to: '/users/create' }]));
+  const n = $('#f-name'); if (n) n.focus();
 });
 Forms.userCreate = async f => { await submitForm(f, 'users.create', formVals(f), d => { go('/users'); showCredentials(d.credentials, 'User created'); }); };
+
+/* ---------- edit / manage ---------- */
 route('/users/:id/edit', async (p, q, id) => {
-  loadingShell('/users', 'Edit user');
+  loadingShell('/users', '');
   const d = await A('users.get', { id: p.id }); if (!current(id)) return;
   const u = d.user;
-  mount(shell('/users', 'Edit user', '', '<div class="grid g2"><div class="card"><div class="hd"><h2>Profile</h2></div><div class="bd"><form data-form="userEdit" data-id="' + h(u.id) + '" novalidate>' + field('Full name', input('name', { value: u.name, required: true, max: 255 })) + field('Username', input('username', { value: u.username, disabled: true })) +
-    field('Email', input('email', { type: 'email', value: u.email || '', max: 255 })) + field('Role', select('role', roleOpts(d.roles), u.role, { disabled: !d.can.changeRole }), { hint: d.can.changeRole ? '' : 'You cannot change your own role.' }) + '<button class="btn primary" type="submit">Save changes</button></form></div></div>' +
-    '<div class="stack"><div class="card"><div class="hd"><h2>Status</h2>' + statusBadge(u.status) + '</div><div class="bd"><div class="row">' + select('status', d.statuses.map(s => ({ value: s, label: s })), u.status, { disabled: !d.can.changeStatus }) + '<button class="btn" data-act="userStatus" data-id="' + h(u.id) + '"' + (d.can.changeStatus ? '' : ' disabled') + '>Update status</button></div><p class="muted small" style="margin:10px 0 0">Inactive and suspended users are signed out immediately and cannot sign in.</p></div></div>' +
-    '<div class="card"><div class="hd"><h2>Password</h2></div><div class="bd"><p class="muted" style="margin-top:0">Issue a new temporary password. All sessions and trusted devices are revoked.</p><button class="btn danger" data-act="userReset" data-id="' + h(u.id) + '"' + (d.can.resetPassword ? '' : ' disabled') + '>' + icon('key') + 'Reset password</button></div></div>' +
-    '<p class="small muted">Last sign-in: ' + h(fmtDT(u.last_login_at)) + '</p></div></div>'));
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0"><div class="gav" aria-hidden="true">' + h(initials(u.name)) + '</div>' +
+    '<div style="min-width:0"><h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(u.name) + '</h1><p class="muted" style="margin:0;font-size:14px">@' + h(u.username) + ' · ' + h(u.role_label) + '</p></div></div>' +
+    '<div class="row" style="gap:.5rem">' + uPill(u.status, true) + uBack('/users', 'Back to users') + '</div></div>';
+
+  const details = '<section class="dcard span2"><header style="padding:1rem 1.25rem .75rem"><h2>Details</h2></header>' +
+    '<form data-form="userEdit" data-id="' + h(u.id) + '" style="padding:0 1.25rem 1.25rem" novalidate>' +
+    bField('Full name', 'f-name', rxi(input('name', { value: u.name, required: true, max: 255 }))) +
+    bField('Email', 'f-email', rxi(input('email', { type: 'email', value: u.email || '', max: 255 }))) +
+    bField('Role', 'f-role', rxi(select('role', roleOpts(d.roles), u.role, { disabled: !d.can.changeRole })) + (d.can.changeRole ? '' : '<p class="muted" style="margin:0;font-size:12px">You cannot change your own role.</p>')) +
+    '<button class="btn primary rx" type="submit">Save changes</button></form></section>';
+
+  const statusOpts = d.statuses.map(s => ({ value: s, label: uCap(s) }));
+  const access = '<section class="dcard"><header class="row" style="gap:.5rem;padding:1rem 1.25rem .75rem"><span class="muted" style="display:grid;width:1rem;height:1rem">' + icon('shieldCheck') + '</span><h2>Access</h2></header>' +
+    '<div style="display:grid;gap:1rem;padding:0 1.25rem 1.25rem"><p class="muted" style="margin:0;font-size:12px">Inactive and suspended users cannot sign in, and their active sessions and trusted devices are revoked.</p>' +
+    '<form data-form="userStatus" data-id="' + h(u.id) + '" style="display:grid;gap:.75rem" novalidate>' +
+    '<div style="display:grid;gap:.5rem"><label for="f-status" style="margin:0">Status</label>' + rxi(select('status', statusOpts, u.status, { disabled: !d.can.changeStatus })) + '</div>' +
+    '<div><button class="btn rx" type="submit"' + (d.can.changeStatus ? '' : ' disabled') + '>Update status</button></div></form>' +
+    (d.can.changeStatus ? '' : '<p class="muted" style="margin:0;font-size:12px">You cannot change your own status.</p>') + '</div></section>';
+
+  const reset = d.can.resetPassword ? '<section class="row between" style="gap:1rem;border-radius:1rem;border:1px solid color-mix(in oklab,var(--rose-500) 25%,transparent);background:color-mix(in oklab,var(--rose-500) 5%,transparent);padding:1.25rem">' +
+    '<div class="row" style="gap:.75rem;align-items:flex-start;flex-wrap:nowrap">' + chipIcon('key', 'rose', 'sm') + '<div><h2>Reset password</h2><p class="muted" style="margin:0;font-size:14px">Generates a new temporary password, shown once. The user must change it at next login and is signed out everywhere.</p></div></div>' +
+    '<button type="button" class="btn danger solid rx" data-act="userReset" data-id="' + h(u.id) + '" data-name="' + h(u.name) + '">Reset password</button></section>' : '';
+
+  mount(shell('/users', '', '', '<div class="dg">' + head + '<div class="dg dg-trend">' + details + '<div class="dg">' + access + '</div></div>' + reset + '</div>', '', [{ t: 'Users', to: '/users' }, { t: 'Manage user', to: '/users' }]));
 });
 Forms.userEdit = async f => { const v = formVals(f); const body = { id: f.dataset.id, name: v.name, email: v.email }; if (!$('[name=role]', f).disabled) body.role = v.role; if (!body.email) delete body.email; await submitForm(f, 'users.update', body, () => go(State.path)); };
-Actions.userStatus = async el => { const s = $('[name=status]').value; await busy(el, async () => { await A('users.status', { id: el.dataset.id, status: s }); toast(A.lastMessage || 'Status updated.', 'ok'); go(State.path); }); };
-Actions.userReset = async el => { const ok = await confirmDialog({ title: 'Reset password?', message: 'The current password stops working immediately and the user is signed out everywhere.', confirmText: 'Reset password', danger: true }); if (!ok) return; await busy(el, async () => { const d = await A('users.resetPassword', { id: el.dataset.id }); showCredentials(d.credentials, 'Password reset'); }); };
+Forms.userStatus = async f => { await submitForm(f, 'users.status', { id: f.dataset.id, status: $('[name=status]', f).value }, () => go(State.path)); };
+Actions.userReset = async el => { const ok = await confirmDialog({ title: 'Reset password?', message: 'Reset the password for ' + (el.dataset.name || 'this user') + '? Their current password will stop working and they are signed out everywhere.', confirmText: 'Reset password', danger: true }); if (!ok) return; await busy(el, async () => { const d = await A('users.resetPassword', { id: el.dataset.id }); showCredentials(d.credentials, 'Password reset'); }); };
 
 /* ---------- batches (ported 1:1 from resources/js/pages/batches/index.tsx, show.tsx and create.tsx) ---------- */
 Object.assign(ICONS, { userPlus: 'M2 21a8 8 0 0 1 13.292-6M15 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0M19 16v6M22 19h-6' });
