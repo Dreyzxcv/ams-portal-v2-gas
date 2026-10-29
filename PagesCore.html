@@ -1,14 +1,15 @@
 <script>
 /* ===== Dashboard, users, batches, grades, violations, progress ===== */
 
-/* ---- dashboard building blocks (ported from resources/js/pages/dashboard.tsx) ---- */
+/* ---- dashboard (ported 1:1 from resources/js/pages/dashboard.tsx) ---- */
 const greeting = () => { const hr = new Date().getHours(); return hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening'; };
-const chipIcon = (i, tone) => '<span class="chipicon t-' + tone + '">' + icon(i) + '</span>';
+const chipIcon = (i, tone, cls) => '<span class="chipicon t-' + tone + (cls ? ' ' + cls : '') + '">' + icon(i) + '</span>';
 const sBadge = (tone, text) => '<span class="statusbadge t-' + tone + '">' + h(text) + '</span>';
-const meterHtml = (value, total, tone) => { const pct = total > 0 ? Math.max(0, Math.min(100, (value / total) * 100)) : 0; return '<div class="meter t-' + tone + '" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div>'; };
-function ringHtml(pct, tone, size) {
-  size = size || 104; const sw = 10, r = (size - sw) / 2, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct));
-  return '<div class="ring t-' + tone + '" style="width:' + size + 'px;height:' + size + 'px"><svg width="' + size + '" height="' + size + '"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke-width="' + sw + '" style="stroke:color-mix(in oklab,var(--foreground) 10%,transparent)"/><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke-width="' + sw + '" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + (c * (1 - p / 100)) + '" style="stroke:var(--tb)"/></svg><div class="c"><span style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">' + Math.round(p) + '%</span></div></div>';
+const meterHtml = (value, total, tone, label) => { const pct = total > 0 ? Math.max(0, Math.min(100, (value / total) * 100)) : 0; return '<div class="meter t-' + tone + '" role="progressbar"' + (label ? ' aria-label="' + h(label) + '"' : '') + ' aria-valuenow="' + value + '" aria-valuemin="0" aria-valuemax="' + total + '"><i style="width:' + pct + '%"></i></div>'; };
+/** Ring with optional centred content (Ring in the original). */
+function ringHtml(pct, tone, size, inner) {
+  size = size || 112; const sw = 10, r = (size - sw) / 2, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct));
+  return '<div class="ring t-' + tone + '" style="width:' + size + 'px;height:' + size + 'px" role="img" aria-label="' + Math.round(p) + '%"><svg width="' + size + '" height="' + size + '"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke-width="' + sw + '" style="stroke:color-mix(in oklab,var(--foreground) 10%,transparent)"/><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke-width="' + sw + '" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + (c - (p / 100) * c) + '" style="stroke:var(--tb)"/></svg><div class="c">' + (inner !== undefined ? inner : '<span style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">' + Math.round(p) + '%</span>') + '</div></div>';
 }
 function heroHtml(o) {
   return '<div class="hero">' + (o.deco ? '<span class="deco">' + icon(o.deco).replace('<svg ', '<svg style="width:100%;height:100%;stroke-width:1.5" ') + '</span>' : '') +
@@ -16,52 +17,155 @@ function heroHtml(o) {
     (o.chips && o.chips.length ? '<dl class="chips">' + o.chips.map(c => '<div class="chip"><dd class="tc t-' + c.tone + '" style="margin:0"><b>' + h(c.value) + '</b></dd><dt class="muted" style="font-size:12px">' + h(c.label) + '</dt></div>').join('') + '</dl>' : '') +
     '</div>' + (o.aside ? '<div style="position:relative">' + o.aside + '</div>' : '') + '</div></div>';
 }
-const dpanel = (title, ic, aside, inner) => '<section class="dcard dpanel"><header><h2>' + (ic ? icon(ic) : '') + h(title) + '</h2>' + (aside || '') + '</header>' + inner + '</section>';
-const sumCard = (o) => { const inner = '<div class="top">' + chipIcon(o.icon, o.tone) + (o.badge || (o.href ? '<span class="muted">' + icon('arrowUpRight').replace('<svg ', '<svg style="width:1rem;height:1rem" ') + '</span>' : '')) + '</div><div class="big">' + o.value + '</div><div class="lbl"' + (o.sub ? ' style="font-weight:500;color:var(--foreground)"' : '') + '>' + h(o.label) + '</div>' + (o.sub ? '<div class="small muted">' + h(o.sub) + '</div>' : '');
-  return o.href ? '<a class="dcard sumcard t-' + o.tone + '" href="' + h(o.href) + '" data-go="' + h(o.href.replace(/^#/, '')) + '">' + inner + '</a>' : '<div class="dcard sumcard t-' + o.tone + '">' + inner + '</div>'; };
-const statCard = s => '<div class="card stat">' + (s.href ? '<a href="' + h(s.href) + '" data-go="' + h(s.href.replace(/^#/, '')) + '">' : '') + '<div class="v">' + h(s.value) + '</div><div class="l">' + h(s.label) + '</div>' + (s.href ? '</a>' : '') + '</div>';
-const GROUP_STYLE = { Users: ['users', 'blue'], Batches: ['batch', 'violet'], Grades: ['grades', 'teal'], Violations: ['alert', 'rose'], Progress: ['hourglass', 'sky'], Certificates: ['cert', 'violet'] };
-const LABEL_TONE = { 'Pending': 'violet', 'Last 30 days': 'rose', 'Grades entered, last 7 days': 'teal', 'Trainees who passed the final exam': 'emerald', 'Active trainees without a batch': 'amber' };
+const dpanel = (title, ic, aside, inner, cls) => '<section class="dcard dpanel' + (cls ? ' ' + cls : '') + '"><header><h2>' + (ic ? icon(ic) : '') + h(title) + '</h2>' + (aside || '') + '</header>' + inner + '</section>';
+const sumCard = o => '<div class="dcard sumcard t-' + o.tone + '"><div class="top">' + chipIcon(o.icon, o.tone) + (o.badge || '') + '</div><div class="big">' + o.value + '</div><div class="lbl">' + h(o.label) + '</div></div>';
+const barRow = (label, right, value, total, tone) => '<div class="barrow t-' + tone + '"><div class="hd2"><span>' + h(label) + '</span><b>' + h(right) + '</b></div>' + meterHtml(value, total, tone, label) + '</div>';
+const dlink = (href, cls, inner) => '<a class="' + cls + '" href="' + h(href) + '" data-go="' + h(href.replace(/^#/, '')) + '">' + inner + '</a>';
+const fixScore = c => (c.score === undefined || c.score === '' ? Object.assign({}, c, { score: null }) : c);
 
 route('/dashboard', async (p, q, id) => {
   loadingShell('/dashboard', '');
   const d = await A('dashboard.get');
   if (!current(id)) return;
   if (d.mode === 'trainee') return renderTraineeDash(d.trainee);
-  const attn = [];
-  d.groups.forEach(g => g.stats.forEach(s => { if (['Active trainees without a batch', 'Pending', 'Last 30 days'].indexOf(s.label) !== -1 && (g.title !== 'Certificates' || s.label === 'Pending') && (s.label !== 'Last 30 days' || g.title === 'Violations') && s.value > 0) attn.push({ label: s.label === 'Pending' ? 'Certificates pending' : s.label === 'Last 30 days' ? 'Violations this month' : 'Trainees without a batch', value: s.value, tone: 'amber' }); }));
-  let body = '<div style="display:grid;gap:1rem">' + heroHtml({ title: State.user.name, subtitle: 'Figures shown are limited to what your role can access.', chips: attn }) + '';
-  d.groups.forEach(g => {
-    const gs = GROUP_STYLE[g.title] || ['dashboard', 'sky'];
-    body += '<h2 class="sect">' + h(g.title) + '</h2><div class="grid g3">' + g.stats.map(s => sumCard({ icon: gs[0], tone: LABEL_TONE[s.label] || gs[1], value: h(s.value), label: s.label, href: s.href })).join('') + '</div>';
-  });
-  if (d.trend) body += dpanel('Last 8 weeks', 'progress', '<span class="muted small">Weekly counts</span>', '<div class="dbody">' + lineChart(d.trend.weeks, d.trend.series) + '</div>');
-  const cols = [];
-  if (d.batches) cols.push(dpanel('Batch overview', 'batch', '<a class="small muted" href="#/batches" data-go="/batches">Manage</a>', d.batches.length ? '<ul style="list-style:none;margin:0;padding:.25rem 1.25rem 1rem;display:grid;gap:.75rem">' + (() => { const shown = d.batches.slice(0, 4), mx = Math.max(1, ...shown.map(b => Number(b.members))); return shown.map(b => '<li><div class="row between" style="margin-bottom:.375rem;flex-wrap:nowrap"><a href="#/batches/' + h(b.id) + '" data-go="/batches/' + h(b.id) + '" style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(b.name) + '</a><span class="muted small nowrap">' + b.members + ' trainee' + (b.members === 1 ? '' : 's') + '</span></div>' + meterHtml(Number(b.members), mx, 'violet') + '</li>').join('') + (d.batches.length > 4 ? '<li class="muted small">+' + (d.batches.length - 4) + ' more batches</li>' : ''); })() + '</ul>' : '<p class="muted center" style="padding:0 1.25rem 1.5rem;margin:0">No batches yet.</p>'));
-  if (d.activity) cols.push(dpanel('Recent activity', 'clock', '', d.activity.length ? '<div class="dbody" style="display:grid;gap:.75rem">' + d.activity.map(a => '<div class="row between small" style="flex-wrap:nowrap;gap:1rem"><span style="min-width:0"><b>' + h(a.actor) + '</b> <span class="mono">' + h(a.action) + '</span>' + (a.subject ? ' <span class="muted">' + h(a.subject) + '</span>' : '') + '</span><span class="muted nowrap">' + h(fmtDT(a.occurred_at)) + '</span></div>').join('') + '</div>' : '<p class="muted center" style="padding:0 1.25rem 1.5rem;margin:0">No activity yet.</p>'));
-  if (cols.length) body += '<div class="grid g2" style="align-items:stretch">' + cols.join('') + '</div>';
-  if (!d.groups.length && !cols.length && !d.trend) body += '<div class="dcard"><div class="empty">Nothing to show for your role yet.</div></div>';
-  body += '</div>';
-  mount(shell('/dashboard', '', '', body, '', 'Dashboard'));
+  mount(shell('/dashboard', '', '', renderStaffDash(d), '', 'Dashboard'));
 });
+
+/* ---------- Trainee (TraineeView) ---------- */
 function renderTraineeDash(t) {
-  const total = Number(t.grades_total), entered = Number(t.grades_entered), passed = Number(t.grades_passed), pct = total > 0 ? Math.min(100, Math.round((entered / total) * 100)) : 0;
-  const comps = t.components || [], scored = comps.filter(c => c.score !== null && c.max), sumS = scored.reduce((a, c) => a + Number(c.score), 0), sumM = scored.reduce((a, c) => a + Number(c.max), 0);
-  const avg = sumM > 0 ? Math.round((sumS / sumM) * 10000) / 100 : null, anyFail = comps.some(c => c.passed === false), allPass = comps.length > 0 && comps.every(c => c.passed === true);
-  const v = Number(t.violations), issued = !!t.certificate_number;
+  const entered = Number(t.grades_entered), passed = Number(t.grades_passed), total = Number(t.grades_total), v = Number(t.violations), issued = !!t.certificate_number;
+  const comps = (t.components || []).map(fixScore), hasComps = comps.length > 0;
+  const scored = comps.filter(c => c.score !== null && c.max && isFinite(Number(c.score))), sumS = scored.reduce((a, c) => a + Number(c.score), 0), sumM = scored.reduce((a, c) => a + Number(c.max), 0);
+  const avg = sumM > 0 ? Math.round((sumS / sumM) * 10000) / 100 : null;
+  const anyFail = comps.some(c => c.passed === false), allPass = hasComps && comps.every(c => c.passed === true);
+  const complete = total > 0 && entered >= total, pct = total > 0 ? Math.min(100, Math.round((entered / total) * 100)) : 0;
+
   const first = avg !== null
     ? sumCard({ icon: 'grades', tone: 'blue', value: h(avg) + '%', label: 'Overall average', badge: anyFail ? sBadge('rose', 'Fail') : allPass ? sBadge('emerald', 'Pass') : sBadge('amber', 'Pending') })
     : sumCard({ icon: 'grades', tone: 'blue', value: passed + '<small> of ' + total + '</small>', label: 'Grades passed', badge: total === 0 ? sBadge('muted', 'No grades yet') : passed === total ? sBadge('emerald', 'All passed') : entered > passed ? sBadge('amber', (entered - passed) + ' not passed') : sBadge('muted', Math.max(0, total - entered) + ' pending') });
-  let body = '<div style="display:grid;gap:1rem">' + heroHtml({ deco: 'stethoscope', title: State.user.name, subtitle: (t.batch || 'No batch assigned') + '. Here is where your training stands today.', aside: ringHtml(pct, 'sky', 104) }) +
-    '<div class="grid g3">' + first +
-    sumCard({ icon: 'alert', tone: v === 0 ? 'emerald' : 'amber', value: v, label: 'Violations', badge: v === 0 ? sBadge('emerald', 'Clean record') : sBadge('amber', v + ' recorded'), href: '#/violations' }) +
+
+  const gradesBody = total === 0 ? '<p class="muted center" style="padding:1.5rem 0;margin:0;font-size:14px">No graded components yet.</p>'
+    : hasComps ? comps.map((c, i) => { const has = c.score !== null, tone = !has ? 'muted' : c.passed === false ? 'rose' : 'emerald';
+        return barRow(c.name || 'Component ' + (i + 1), has ? String(c.score) + (c.max ? '/' + c.max : '') : 'N/A', has ? Number(c.score) : 0, Number(c.max || 0), tone); }).join('')
+    : barRow('Grades entered', entered + '/' + total, entered, total, 'blue') + barRow('Grades passed', passed + '/' + total, passed, total, 'emerald');
+
+  const progressBody = '<div class="dprog"><div class="mid">' + (complete
+    ? '<div class="done">' + ringHtml(100, 'emerald', 120, '<span class="tc t-emerald" style="width:2rem;height:2rem;display:block">' + icon('grades') + '</span>') + '<p class="t-emerald tc" style="margin:.75rem 0 0;font-size:18px;font-weight:600">Training completed</p><p class="muted" style="margin:0;font-size:12px">All graded components are in</p></div>'
+    : '<div class="split">' + ringHtml(pct, 'sky', 120, '<span style="font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums">' + pct + '%</span><span class="muted" style="font-size:11px">complete</span>') +
+      '<div class="pair"><div class="softbox t-sky"><b>' + h(t.current_phase !== null && t.current_phase !== undefined ? t.current_phase : '—') + '</b><span>Current Phase</span></div>' +
+      '<div class="softbox t-amber"><b>' + h(t.batch_ended ? 'Ended' : (t.remaining_days === null || t.remaining_days === undefined ? '—' : t.remaining_days)) + '</b><span>Days left</span></div></div></div>') + '</div>' +
+    '<dl class="foot"><div><dt class="muted">Batch</dt><dd>' + h(t.batch || 'Not assigned') + '</dd></div><div><dt class="muted">Started on</dt><dd>' + h(t.started_on || 'Not set') + '</dd></div></dl></div>';
+
+  const certBody = '<div class="dcert"><div class="row" style="gap:1rem;flex-wrap:nowrap">' + chipIcon(issued ? 'circleCheck' : 'cert', issued ? 'emerald' : 'muted', 'lg') +
+    (issued ? '<div style="min-width:0"><p class="t-emerald tc" style="margin:0;font-size:16px;font-weight:600">Certificate issued</p><p class="muted" style="margin:0;font-size:12px">ID: ' + h(t.certificate_number) + '</p>' + (t.certificate_issued_at ? '<p class="muted" style="margin:0;font-size:12px">Issued: ' + h(t.certificate_issued_at) + '</p>' : '') + '</div>'
+      : '<div><p style="margin:0;font-size:14px;font-weight:600">Not issued yet</p><p class="muted" style="margin:0;font-size:12px">Your certificate will appear here once it is issued.</p></div>') + '</div>' +
+    (issued && t.certificate_id ? '<div class="row"><button class="btn" data-act="certPreview" data-id="' + h(t.certificate_id) + '">Open in new tab</button><button class="btn primary" data-act="certDownload" data-id="' + h(t.certificate_id) + '">Download</button></div>' : '') + '</div>';
+
+  const body = '<div class="dg">' + heroHtml({ deco: 'stethoscope', title: State.user.name, subtitle: (t.batch || 'No batch assigned') + '. Here is where your training stands today.', aside: ringHtml(pct, 'sky', 104) }) +
+    '<div class="dg dg-3sm">' + first +
+    sumCard({ icon: 'alert', tone: v === 0 ? 'emerald' : 'amber', value: v, label: 'Violations', badge: v === 0 ? sBadge('emerald', 'Clean record') : sBadge('amber', v + ' recorded') }) +
     sumCard({ icon: issued ? 'circleCheck' : 'cert', tone: issued ? 'emerald' : 'muted', value: issued ? 'Issued' : 'Not yet', label: 'Certificate', badge: issued ? sBadge('emerald', 'Complete') : sBadge('muted', 'Waiting') }) + '</div>' +
-    '<div class="grid g2" style="align-items:stretch">' +
-    dpanel('Grades', 'grades', '<a class="small muted" href="#/grades" data-go="/grades">Details</a>',
-      '<div class="dbody" style="display:grid;gap:1.25rem">' + (comps.length ? comps.map(c => '<div class="barrow t-' + (c.score === null ? 'muted' : c.passed ? 'emerald' : 'rose') + '"><div class="hd2"><span>' + h(c.name) + '</span><b>' + (c.score === null ? 'Pending' : num(c.score) + ' / ' + num(c.max)) + '</b></div>' + meterHtml(c.score === null ? 0 : Number(c.score), Number(c.max) || 1, c.score === null ? 'muted' : c.passed ? 'emerald' : 'rose') + '</div>').join('') : '<p class="muted center" style="margin:0">No grades yet.</p>') + '</div>') +
-    dpanel('Certificate', 'cert', '', '<div class="dbody">' + (t.certificate_id ? '<p style="margin:0 0 1rem">Issued <b>' + h(t.certificate_number) + '</b> on ' + h(fmtD(t.certificate_issued_at)) + '.</p><div class="row"><button class="btn primary" data-act="certPreview" data-id="' + h(t.certificate_id) + '">' + icon('eye') + 'View</button><button class="btn" data-act="certDownload" data-id="' + h(t.certificate_id) + '">' + icon('download') + 'Download</button></div>' : '<p class="muted" style="margin:0">Your certificate will appear here once it has been issued.</p>') +
-      '<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin-top:1.25rem"><div class="softbox t-sky"><b>' + (t.current_phase_title ? h(t.current_phase_title) : '—').replace(/^(.{0,0})/, '$1') + '</b><span>Current phase</span></div><div class="softbox t-amber"><b>' + (t.remaining_days === null ? '—' : h(t.remaining_days)) + '</b><span>' + (t.batch_ended ? 'Batch ended' : 'Days remaining') + '</span></div></div></div>') + '</div></div>';
+    '<div class="dg dg-2lg" style="align-items:stretch">' + dpanel('Grades overview', 'clipboard', '', '<div class="dbars">' + gradesBody + '</div>') + dpanel('Training progress', 'flag', '', progressBody) + '</div>' +
+    dpanel('Certificate status', 'cert', '', certBody) + '</div>';
   mount(shell('/dashboard', '', '', body, '', 'Dashboard'));
+}
+
+/* ---------- Staff (Dashboard page + NeedsAttention / KpiCard / TrendPanel / ...) ---------- */
+const GROUP_ICON = { Users: 'users', Batches: 'batch', Grades: 'grades', Violations: 'alert', Progress: 'hourglass', Certificates: 'cert' };
+const ACTION_LABELS = { Users: 'Manage users', Batches: 'Batches', Grades: 'Manage grades', Violations: 'Manage violations', Progress: 'Manage progress' };
+const KEY_SPECS = [
+  { group: 'Users', label: 'Active users', title: 'Active users', icon: 'users', tone: 'blue' },
+  { label: 'Active trainees without a batch', title: 'Trainees without a batch', icon: 'userX', tone: 'amber' },
+  { group: 'Violations', label: 'Last 30 days', title: 'Violations, 30 days', icon: 'alert', tone: 'rose' },
+  { group: 'Certificates', label: 'Pending', title: 'Pending certificates', icon: 'cert', tone: 'violet' },
+  { label: 'Grades entered, last 7 days', title: 'Grades entered, 7 days', icon: 'clipboard', tone: 'teal' },
+  { label: 'Trainees who passed the final exam', title: 'Passed final exam', icon: 'grades', tone: 'emerald' }];
+const ATTN_SPECS = [
+  { label: 'Active trainees without a batch', title: 'Trainees without a batch', icon: 'userX', tone: 'amber' },
+  { group: 'Certificates', label: 'Pending', title: 'Certificates pending', icon: 'cert', tone: 'amber' },
+  { group: 'Violations', label: 'Last 30 days', title: 'Violations this month', icon: 'alert', tone: 'amber' }];
+function resolveSpecs(groups, specs) {
+  const out = [];
+  specs.forEach(spec => { for (const g of groups) { if (spec.group && g.title !== spec.group) continue; const stat = g.stats.find(s => s.label === spec.label); if (stat) { out.push(Object.assign({}, spec, { group: g.title, stat })); break; } } });
+  return out;
+}
+function kpiCard(k) {
+  const s = k.stat, inner = '<div class="top">' + chipIcon(k.icon, k.tone, 'sm') + (s.href ? '<span class="muted arrow">' + icon('arrowUpRight') + '</span>' : '') + '</div><div class="kv' + (k.emphasis && Number(s.value) > 0 ? ' tc t-amber' : '') + '">' + h(s.value) + '</div><div class="kt">' + h(k.title) + '</div><div class="ks">' + h(k.group) + '</div>';
+  return s.href ? dlink(s.href, 'dcard kpi hov', inner) : '<div class="dcard kpi">' + inner + '</div>';
+}
+function needsAttention(items) {
+  const open = items.filter(i => Number(i.stat.value) > 0);
+  if (!open.length) return '<div class="attnok"><span class="t-emerald tc">' + icon('circleCheck') + '</span>Nothing needs attention right now.</div>';
+  return '<div class="attnbox"><p class="ttl t-amber">' + icon('alert') + 'Needs attention</p><ul class="dg-attn">' + open.map(i => {
+    const row = '<span class="num t-amber">' + h(i.stat.value) + '</span><span style="min-width:0;flex:1"><span class="nm">' + h(i.title) + '</span><span class="gp">' + icon(i.icon) + h(i.group) + '</span></span>' + (i.stat.href ? '<span class="muted chev">' + icon('chevronRight') + '</span>' : '');
+    return '<li>' + (i.stat.href ? dlink(i.stat.href, 'attnitem hov', row) : '<div class="attnitem">' + row + '</div>') + '</li>'; }).join('') + '</ul></div>';
+}
+function moreFigures(groups) {
+  const shown = groups.filter(g => g.stats.length > 0); if (!shown.length) return '';
+  return dpanel('All figures', 'batch', '', '<div class="dg-more">' + shown.map(g => '<div class="figbox"><h3>' + icon(GROUP_ICON[g.title] || 'batch') + h(g.title) + '</h3><dl>' + g.stats.map(s =>
+    '<div class="figrow"><dt class="muted">' + (s.href ? dlink(s.href, 'fl', h(s.label)) : h(s.label)) + '</dt><dd>' + h(s.value) + '</dd></div>').join('') + '</dl></div>').join('') + '</div>');
+}
+function quickActions(actions) {
+  return dpanel('Quick actions', 'zap', '', '<nav class="dg-qa" aria-label="Quick actions">' + actions.map((a, i) => dlink(a.href, 'qa' + (i === 0 ? ' primary' : ''), icon(a.icon) + '<span style="flex:1">' + h(a.label) + '</span><span class="chev">' + icon('chevronRight') + '</span>')).join('') + '</nav>');
+}
+function batchOverview(batches, href) {
+  const shown = batches.slice(0, 4), extra = batches.length - shown.length, mx = Math.max(1, ...shown.map(b => Number(b.members)));
+  return dpanel('Batch overview', 'batch', href ? dlink(href, 'asidelink', 'Manage') : '', batches.length === 0 ? '<p class="muted center" style="padding:0 1.25rem 1.5rem;margin:0;font-size:14px">No batches yet.</p>'
+    : '<ul class="blist">' + shown.map(b => '<li><div class="bh"><span class="bn">' + h(b.name) + '</span><span class="muted bm" aria-label="' + h(b.members) + ' trainees">' + h(b.members) + ' trainees</span></div>' + meterHtml(Number(b.members), mx, 'violet', b.name) + '</li>').join('') + (extra > 0 ? '<li class="muted" style="font-size:12px">+' + extra + ' more batches</li>' : '') + '</ul>');
+}
+const SERIES_COLOR = { 'Grades entered': '#10b981', Violations: '#f59e0b' };
+const weekLbl = iso => new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+function barChart(trend, width) {
+  const n = trend.weeks.length, k = trend.series.length, H = 176, P = { l: 26, r: 8, t: 4, b: 22 }, W = width;
+  const max = Math.max(0, ...trend.series.flatMap(s => s.values)), step = Math.max(1, Math.ceil(Math.max(max, 3) / 3)), top = step * 3;
+  const pw = W - P.l - P.r, ph = H - P.t - P.b, cw = pw / n, y = v => P.t + ph - (v / top) * ph;
+  let g = '';
+  for (let i = 0; i <= 3; i++) { const yy = y(i * step); g += '<line x1="' + P.l + '" x2="' + (W - P.r) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--border)" stroke-dasharray="3 3"/><text x="' + (P.l - 8) + '" y="' + (yy + 4) + '" text-anchor="end">' + (i * step) + '</text>'; }
+  const gap = 3, bw = Math.min(16, (cw * 0.8 - gap * (k - 1)) / k), gw = bw * k + gap * (k - 1), every = cw < 44 ? 2 : 1;
+  trend.weeks.forEach((w, i) => {
+    const gx = P.l + cw * i + (cw - gw) / 2;
+    if (i % every === 0) g += '<text x="' + (P.l + cw * i + cw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + h(weekLbl(w)) + '</text>';
+    trend.series.forEach((s, j) => {
+      const val = s.values[i]; if (!val) return;
+      const x = gx + j * (bw + gap), yt = y(val), hh = P.t + ph - yt, r = Math.min(6, bw / 2, hh), col = SERIES_COLOR[s.label] || 'var(--primary)';
+      g += '<path d="M' + x + ',' + (yt + hh) + 'L' + x + ',' + (yt + r) + 'Q' + x + ',' + yt + ' ' + (x + r) + ',' + yt + 'L' + (x + bw - r) + ',' + yt + 'Q' + (x + bw) + ',' + yt + ' ' + (x + bw) + ',' + (yt + r) + 'L' + (x + bw) + ',' + (yt + hh) + 'Z" fill="' + col + '"><title>Week of ' + h(weekLbl(w)) + ' - ' + h(s.label) + ': ' + val + '</title></path>';
+    });
+  });
+  return '<svg class="bchart" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' + g + '</svg>';
+}
+function trendPanel(trend, wide, cls) {
+  const all = trend.series.flatMap(s => s.values), max = Math.max(0, ...all), sum = all.reduce((a, b) => a + b, 0), n = trend.weeks.length;
+  const summary = 'Weekly counts, ' + weekLbl(trend.weeks[0]) + ' to ' + weekLbl(trend.weeks[n - 1]);
+  const host = document.querySelector('.content'), cs = host ? getComputedStyle(host) : null, avail = host ? host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : 760;
+  const panelW = window.innerWidth >= 1024 && wide ? (avail - 16) * 2 / 3 : avail, W = Math.max(260, Math.round(panelW - 40));
+  const inner = max === 0 ? '<p class="muted center" style="padding:2.5rem 1.25rem;margin:0;font-size:14px">Nothing recorded in the last ' + n + ' weeks.</p>'
+    : '<div class="dpad"><div class="tlegend muted">' + trend.series.map(s => '<span><i style="background:' + (SERIES_COLOR[s.label] || 'var(--primary)') + '"></i>' + h(s.label) + '</span>').join('') + '<span class="peak">Peak: ' + max + '</span></div>' +
+      '<div role="img" aria-label="' + h(summary) + '" style="height:11rem;overflow:hidden">' + barChart(trend, W) + '</div>' +
+      '<table class="sr-only"><caption>' + h(summary) + '</caption><thead><tr><th>Week of</th>' + trend.series.map(s => '<th>' + h(s.label) + '</th>').join('') + '</tr></thead><tbody>' + trend.weeks.map((w, i) => '<tr><td>' + h(weekLbl(w)) + '</td>' + trend.series.map(s => '<td>' + s.values[i] + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+  return dpanel('Weekly trend', 'clipboard', '<span class="pill">' + sum + ' in ' + n + ' weeks</span>', inner, cls);
+}
+function activityTable(activity) {
+  const when = x => { if (!x) return ''; const dt = new Date(x); return isNaN(dt) ? fmtDT(x) : dt.toLocaleString(); };
+  return dpanel('Recent activity', 'clipboard', '', '<div class="dtab"><table><thead><tr><th style="padding-left:1.25rem">When</th><th>Who</th><th>Action</th><th>Subject</th></tr></thead><tbody>' +
+    (activity.length ? activity.map(a => '<tr><td class="muted nowrap" style="padding-left:1.25rem">' + h(when(a.occurred_at)) + '</td><td class="nowrap" style="font-weight:500">' + h(a.actor) + '</td><td class="nowrap"><span class="act">' + h(a.action) + '</span></td><td class="muted">' + h(a.subject || '') + '</td></tr>').join('')
+      : '<tr><td colspan="4" class="muted center" style="padding:2rem 1.25rem">No activity yet.</td></tr>') + '</tbody></table></div>');
+}
+function renderStaffDash(d) {
+  const key = resolveSpecs(d.groups, KEY_SPECS), attention = resolveSpecs(d.groups, ATTN_SPECS);
+  key.forEach(k => { k.emphasis = k.stat.label === 'Active trainees without a batch'; });
+  const keyIds = new Set(key.map(k => k.group + '|' + k.stat.label)), rest = d.groups.map(g => ({ title: g.title, stats: g.stats.filter(s => !keyIds.has(g.title + '|' + s.label)) }));
+  const actions = d.groups.flatMap(g => { const st = g.stats.find(s => s.href), href = st && st.href; return href && ACTION_LABELS[g.title] ? [{ label: ACTION_LABELS[g.title], href: href.split('?')[0], icon: GROUP_ICON[g.title] || 'batch' }] : []; });
+  const bg = d.groups.find(g => g.title === 'Batches'), bst = bg && bg.stats.find(s => s.href), batchesHref = bst ? bst.href : null;
+  const side = actions.length > 0 || d.batches != null, trend = d.trend;
+  let body = '<div class="dg">' + heroHtml({ title: State.user.name, subtitle: 'Figures shown are limited to what your role can access.', chips: attention.filter(a => Number(a.stat.value) > 0).map(a => ({ label: a.title, value: a.stat.value, tone: 'amber' })) });
+  if (!d.groups.length) body += '<p class="muted" style="margin:0;font-size:14px">Your role has no dashboard figures.</p>';
+  if (attention.length) body += needsAttention(attention);
+  if (key.length) body += '<h2 class="sect">Key figures</h2><div class="dg dg-kpi">' + key.map(kpiCard).join('') + '</div>';
+  if (trend || side) body += '<div class="dg dg-trend">' + (trend ? trendPanel(trend, side, side ? 'span2' : 'span3') : '') +
+    (side ? '<div class="dg ' + (!trend ? 'span3' : '') + '">' + (d.batches != null ? batchOverview(d.batches, batchesHref) : '') + (actions.length ? quickActions(actions) : '') + '</div>' : '') + '</div>';
+  body += moreFigures(rest);
+  if (d.activity) body += activityTable(d.activity);
+  return body + '</div>';
 }
 
 /* ---------- users ---------- */
@@ -129,28 +233,87 @@ Actions.batchAssign = async el => { const u = $('#assign-user').value; if (!u) r
 Actions.batchUnassign = async el => { const ok = await confirmDialog({ title: 'Remove trainee?', message: 'They will no longer belong to this batch.', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('batches.unassign', { id: el.dataset.id, assignment_id: el.dataset.aid }); toast(A.lastMessage, 'ok'); go(State.path); }); };
 Actions.batchDelete = async el => { const ok = await confirmDialog({ title: 'Delete batch?', message: 'This cannot be undone. The batch must have no trainees.', confirmText: 'Delete', danger: true }); if (!ok) return; await busy(el, async () => { await A('batches.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go('/batches'); }); };
 
-/* ---------- grades ---------- */
+/* ---------- grades (ported 1:1 from resources/js/pages/grades/index.tsx and show.tsx) ---------- */
+const gfmt = v => (v === null || v === undefined ? '-' : String(Number(v)));
+const gwhen = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? fmtDT(iso) : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); };
+const GSTATE = { pass: { cls: 'gs-pass', label: 'Passed', icon: 'check' }, fail: { cls: 'gs-fail', label: 'Failed', icon: 'x' }, none: { cls: 'gs-none', label: 'Not graded', icon: 'circleDashed' } };
+const gstateOf = r => (r.score === null || r.score === undefined ? 'none' : r.passed === false ? 'fail' : 'pass');
+const gpager = m => { if (!m) return ''; const from = m.total ? (m.page - 1) * m.per_page + 1 : 0, to = Math.min(m.total, m.page * m.per_page);
+  return '<div class="gpager"><p class="muted" style="margin:0">' + (m.total === 0 ? 'No trainees' : 'Showing ' + from + ' to ' + to + ' of ' + m.total) + '</p><div class="row" style="gap:.5rem">' +
+    (m.page > 1 ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page - 1) + '">Previous</button>' : '') + (m.page < m.last_page ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page + 1) + '">Next</button>' : '') + '</div></div>'; };
+
 route('/grades', async (p, q, id) => {
-  loadingShell('/grades', 'Grades');
+  loadingShell('/grades', '');
   const d = await A('grades.index', { search: q.search, page: q.page }); if (!current(id)) return;
   if (d.redirect) return go('/grades/' + d.redirect.id);
-  const cols = [{ h: 'Trainee', f: t => '<a href="#/grades/' + h(t.id) + '" data-go="/grades/' + h(t.id) + '"><b>' + h(t.name) + '</b></a><div class="muted small">@' + h(t.username) + '</div>' }].concat(d.components.map(c => ({ h: c.label.split(':')[0] + ' /' + num(c.max_score), cls: 'center', f: t => { const s = t.scores[c.id]; return s === undefined || s === null ? '<span class="muted">—</span>' : badge(num(s), s >= Number(c.pass_score) ? 'ok' : 'bad'); } })));
-  mount(shell('/grades', 'Grades', '', '<div class="toolbar">' + searchBox('Search trainees') + '</div><div class="card">' + table(cols, d.trainees, 'No trainees found.') + pager(d.meta) + '</div><p class="muted small">Green = at or above the pass mark. Maximum scores for quiz-based phases equal the total points of the quiz.</p>'));
+  const head = '<div class="ghead"><div><h1>Grades</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Trainee scores per phase and the final examination</p></div>' +
+    '<form data-form="gradeSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div><button class="btn primary rx" type="submit">Search</button></form></div>';
+  const th = '<th style="padding-left:1.25rem">Trainee</th>' + d.components.map(c => '<th class="nowrap"><div style="color:var(--foreground)">' + h(c.label) + '</div><div style="font-weight:400">Out of ' + Number(c.max_score) + ', pass at ' + Number(c.pass_score) + '</div></th>').join('') + '<th style="padding-right:1.25rem"></th>';
+  const rows = d.trainees.length === 0 ? '<tr><td colspan="' + (d.components.length + 2) + '" class="muted center" style="padding:3rem 1.25rem">No trainees found.</td></tr>'
+    : d.trainees.map(t => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(t.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + '</div><div class="muted" style="font-size:12px">@' + h(t.username) + '</div></div></div></td>' +
+      d.components.map(c => { const s = t.scores[c.id], has = s !== undefined && s !== null, failed = has && Number(s) < Number(c.pass_score);
+        return '<td><span class="gscore ' + (!has ? 'muted' : failed ? 'gs-fail' : 'gs-pass') + '">' + (has ? Number(s) : '-') + '</span></td>'; }).join('') +
+      '<td class="right" style="padding-right:1.25rem"><a class="btn sm rx" href="#/grades/' + h(t.id) + '" data-go="/grades/' + h(t.id) + '">Open</a></td></tr>').join('');
+  mount(shell('/grades', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + gpager(d.meta) + '</div>', '', 'Grades'));
 });
+Forms.gradeSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
+
+function scoreRing(pct, cls, inner) {
+  const size = 84, w = 7, r = (size - w) / 2, c = 2 * Math.PI * r;
+  return '<div class="gring ' + cls + '" style="width:' + size + 'px;height:' + size + 'px"><svg width="' + size + '" height="' + size + '" aria-hidden="true"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke-width="' + w + '" style="stroke:color-mix(in oklab,var(--foreground) 10%,transparent)"/><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke-width="' + w + '" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + (c - (c * Math.min(100, pct)) / 100) + '" style="stroke:var(--g-bar)"/></svg><div class="v">' + inner + '</div></div>';
+}
+function gradeCard(r) {
+  const max = Number(r.max_score), pass = Number(r.pass_score), has = r.score !== null && r.score !== undefined, score = has ? Number(r.score) : 0, st = GSTATE[gstateOf(r)];
+  const pct = max > 0 ? Math.min(100, (score / max) * 100) : 0, passPct = max > 0 ? Math.min(100, (pass / max) * 100) : 0;
+  return '<div class="dcard gcard ' + st.cls + '">' + scoreRing(pct, st.cls, has ? gfmt(r.score) + '/' + max : '—') +
+    '<div style="min-width:0;flex:1;display:grid;gap:.625rem"><div><div class="gt' + (r.is_final ? ' fin' : '') + '">' + h(r.label) + '</div>' + (r.is_final ? '<div class="muted" style="font-size:12px">Final component</div>' : '') + '</div>' +
+    '<span class="gpill ' + st.cls + '">' + icon(st.icon) + st.label + '</span>' +
+    '<div><div class="gbar" role="progressbar" aria-label="' + h(r.label) + ' score" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + score + '"><i style="width:' + pct + '%"></i><span style="left:calc(' + passPct + '% - 1px)"></span></div><div class="muted" style="margin-top:.375rem;font-size:12px;font-variant-numeric:tabular-nums">Passing: ' + pass + '/' + max + '</div></div></div></div>';
+}
+function gradeEditRow(r, tid) {
+  const max = Number(r.max_score), has = r.score !== null && r.score !== undefined;
+  return '<form class="gedit" data-form="gradeSave" data-tid="' + h(tid) + '" data-cid="' + h(r.component_id) + '" novalidate><div class="lab"><label for="score-' + h(r.component_id) + '" style="font-size:14px;font-weight:500">' + h(r.label) + '</label><div class="muted" style="font-size:12px">Pass at ' + Number(r.pass_score) + ' of ' + max + '</div></div>' +
+    '<div><input class="rx" id="score-' + h(r.component_id) + '" name="score" type="number" inputmode="decimal" step="0.01" min="0" max="' + max + '" value="' + (has ? Number(r.score) : '') + '" placeholder="0 – ' + max + '" aria-label="' + h(r.label) + ' score" required style="font-variant-numeric:tabular-nums"></div>' +
+    '<div><input class="rx" type="text" name="reason" maxlength="500" placeholder="' + (has ? 'Reason for change (required)' : 'Note (optional)') + '" autocomplete="off" aria-label="' + h(r.label) + ' reason"></div>' +
+    '<div class="row" style="gap:.5rem"><button class="btn sm primary rx" type="submit" disabled>Save</button></div></form>';
+}
+function historyItem(r, max) {
+  const outOf = max ? ' out of ' + max : '', hadOld = r.old_score !== null && r.old_score !== undefined, hasNew = r.new_score !== null && r.new_score !== undefined, diff = hadOld && hasNew ? Number(r.new_score) - Number(r.old_score) : 0;
+  let ic = 'progress', tone = 'gs-info', text;
+  if (!hadOld && hasNew) { ic = 'plus'; tone = 'gs-pass'; text = 'Score added: <strong>' + h(gfmt(r.new_score)) + '</strong>' + outOf; }
+  else if (hadOld && !hasNew) { ic = 'minus'; tone = 'gs-fail'; text = 'Score removed. It was <strong>' + h(gfmt(r.old_score)) + '</strong>' + outOf; }
+  else {
+    if (diff > 0) tone = 'gs-pass'; else if (diff < 0) { ic = 'trendingDown'; tone = 'gs-warn'; }
+    text = 'Score changed from <strong>' + h(gfmt(r.old_score)) + '</strong> to <strong>' + h(gfmt(r.new_score)) + '</strong>' + outOf + (diff !== 0 ? '<span class="gdiff ' + (diff > 0 ? 'gs-pass' : 'gs-warn') + '">(' + (diff > 0 ? '+' : '') + (Math.round(diff * 100) / 100) + ' points)</span>' : '');
+  }
+  return '<li class="ghist"><span class="gico ' + tone + '" aria-hidden="true">' + icon(ic) + '</span><div style="min-width:0;flex:1;display:grid;gap:.25rem"><div style="font-size:14px;font-weight:600">' + h(r.component) + '</div><p style="margin:0;font-size:14px">' + text + '</p>' +
+    '<p class="muted" style="margin:0;font-size:12px">By ' + h(r.changed_by || 'system') + (r.changed_at ? ' on <time datetime="' + h(r.changed_at) + '">' + h(gwhen(r.changed_at)) + '</time>' : '') + '</p>' +
+    (r.reason ? '<p class="greason"><span class="muted">Reason: </span>' + h(r.reason) + '</p>' : '') + '</div></li>';
+}
 route('/grades/:id', async (p, q, id) => {
-  loadingShell('/grades', 'Grades');
+  loadingShell('/grades', '');
   const d = await A('grades.show', { id: p.id }); if (!current(id)) return;
-  const body = '<div class="card">' + table([{ h: 'Component', f: r => '<b>' + h(r.label) + '</b>' + (r.is_final ? ' ' + badge('Final', 'info') : '') }, { h: 'Score', cls: 'nowrap', f: r => r.score === null ? '<span class="muted">Not graded</span>' : '<b>' + h(num(r.score)) + '</b> / ' + h(num(r.max_score)) }, { h: 'Pass mark', cls: 'hide-sm', f: r => h(num(r.pass_score)) },
-    { h: 'Result', f: r => r.passed === null ? badge('Pending') : badge(r.passed ? 'Passed' : 'Below pass mark', r.passed ? 'ok' : 'bad') }, { h: 'Graded', cls: 'hide-sm', f: r => r.graded_by ? h(r.graded_by) + '<div class="muted small">' + h(fmtDT(r.graded_at)) + '</div>' : '—' },
-    { h: '', cls: 'right', f: r => d.can.manage ? '<button class="btn sm" data-act="gradeEdit" data-tid="' + h(d.trainee.id) + '" data-cid="' + h(r.component_id) + '" data-label="' + h(r.label) + '" data-max="' + h(r.max_score) + '" data-score="' + h(r.score === null ? '' : r.score) + '">' + icon('edit') + (r.score === null ? 'Enter' : 'Edit') + '</button>' : '' }], d.rows) + '</div>' +
-    '<div class="card" style="margin-top:16px"><div class="hd"><h2>Change history</h2></div>' + table([{ h: 'When', cls: 'nowrap', f: r => h(fmtDT(r.changed_at)) }, { h: 'Component', f: r => h(r.component) }, { h: 'Change', cls: 'nowrap', f: r => h(num(r.old_score)) + ' → ' + h(num(r.new_score)) }, { h: 'By', f: r => h(r.changed_by || 'system') }, { h: 'Reason', f: r => h(r.reason || '—') }], d.revisions, 'No changes recorded yet.') + '</div>';
-  mount(shell('/grades', d.trainee.name, d.can.viewAll ? '<a class="btn" href="#/grades" data-go="/grades">← All trainees</a>' : '', body, '@' + h(d.trainee.username)));
+  const rows = d.rows, t = d.trainee;
+  const scored = rows.filter(r => r.score !== null && r.score !== undefined && Number(r.max_score) > 0), sumS = scored.reduce((a, r) => a + Number(r.score), 0), sumM = scored.reduce((a, r) => a + Number(r.max_score), 0);
+  const avg = sumM > 0 ? Math.round((sumS / sumM) * 10000) / 100 : null;
+  const anyFail = rows.some(r => r.passed === false), allPass = rows.length > 0 && rows.every(r => r.passed === true);
+  const nPass = rows.filter(r => r.passed === true).length, nFail = rows.filter(r => r.passed === false).length, nPend = rows.length - nPass - nFail;
+  const overall = anyFail ? { cls: 'gs-fail', label: 'Fail', icon: 'x' } : allPass ? { cls: 'gs-pass', label: 'Pass', icon: 'check' } : { cls: 'gs-warn', label: 'In progress', icon: 'clock' };
+  const latest = rows.filter(r => r.graded_by && r.graded_at).sort((a, b) => new Date(b.graded_at) - new Date(a.graded_at))[0];
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0"><div class="gav" aria-hidden="true">' + h(initials(t.name)) + '</div><div style="min-width:0"><h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + '</h1><p class="muted" style="margin:0;font-size:14px">@' + h(t.username) + ' · Performance across all training phases</p></div></div>' +
+    (d.can.viewAll ? '<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#/grades" data-go="/grades">' + icon('arrowLeft') + 'Back to grades</a>' : '') + '</div>';
+  const cards = rows.length === 0 ? '<div class="gempty">' + icon('circleDashed') + '<p style="margin:0;font-weight:500;color:var(--foreground)">No grades yet</p><p style="margin:0">Scores will appear here once they are recorded.</p></div>' : '<div class="gcards">' + rows.map(gradeCard).join('') + '</div>';
+  const overallSec = '<section class="dcard goverall ' + overall.cls + '" aria-label="Overall performance"><div class="main"><h2 class="muted" style="margin:0;font-size:14px;font-weight:500">Overall performance</h2><div class="big">' + (avg !== null ? avg + '%' : '—') + '</div>' +
+    '<div class="gbar thick" role="progressbar" aria-label="Overall score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + (avg || 0) + '"><i style="width:' + Math.min(100, avg || 0) + '%"></i></div>' +
+    '<dl class="gchips"><div class="gs-pass"><dd>' + nPass + '</dd> <dt>passed</dt></div><div class="' + (nFail > 0 ? 'gs-fail' : 'gs-none') + '"><dd>' + nFail + '</dd> <dt>failed</dt></div><div class="gs-none"><dd>' + nPend + '</dd> <dt>not graded</dt></div></dl></div>' +
+    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;text-align:right"><span class="gpill lg ' + overall.cls + '">' + icon(overall.icon) + overall.label + '</span>' + (latest ? '<p class="muted" style="margin:0;font-size:12px">Updated by ' + h(latest.graded_by) + (latest.graded_at ? ' on ' + h(new Date(latest.graded_at).toLocaleDateString()) : '') + '</p>' : '') + '</div></section>';
+  const edit = d.can.manage && rows.length > 0 ? '<section class="dcard gsec"><header><h2>Edit grades</h2><p class="muted">Changing an existing score needs a reason. Every change is kept in the history below.</p></header><div class="gdiv">' + rows.map(r => gradeEditRow(r, t.id)).join('') + '</div></section>' : '';
+  const hist = '<section class="dcard gsec"><header><h2>Grade history</h2><p class="muted">Every time a score is added or changed, it is listed here.</p></header>' + (d.revisions.length === 0 ? '<div class="muted center" style="padding:2.5rem 1rem;font-size:14px">No grade changes yet. Updates will show here once a score is added.</div>'
+    : '<ol class="gdiv">' + d.revisions.map(r => { const m = rows.find(x => x.label === r.component); return historyItem(r, m ? Number(m.max_score) : null); }).join('') + '</ol>') + '</section>';
+  mount(shell('/grades', '', '', '<div class="dg">' + head + cards + overallSec + edit + hist + '</div>', '', [{ t: 'Grades', to: '/grades' }, { t: 'Trainee grades', to: '/grades' }]));
 });
-Actions.gradeEdit = el => {
-  const d = el.dataset, existing = d.score !== '';
-  openModal({ title: d.label, body: '<form data-form="gradeSave" data-tid="' + h(d.tid) + '" data-cid="' + h(d.cid) + '" novalidate>' + field('Score (max ' + num(d.max) + ')', input('score', { type: 'number', value: d.score, min: 0, maxn: d.max, step: '0.01', required: true })) + field('Reason' + (existing ? ' (required when changing)' : ' (optional)'), '<textarea name="reason" maxlength="500"></textarea>') + '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-modal-close>Cancel</button><button class="btn primary" type="submit">Save grade</button></div></form>' });
-};
-Forms.gradeSave = async f => { const v = formVals(f); await submitForm(f, 'grades.save', { trainee_id: f.dataset.tid, component_id: f.dataset.cid, score: v.score, reason: v.reason }, () => { const o = f.closest('.overlay'); if (o) o.remove(); go(State.path); }); };
+Forms.gradeSave = async f => { const v = formVals(f); await submitForm(f, 'grades.save', { trainee_id: f.dataset.tid, component_id: f.dataset.cid, score: v.score, reason: v.reason }, () => go(State.path)); };
+document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('form.gedit'); if (f) { const b = f.querySelector('[type=submit]'); if (b) b.disabled = false; } });
 
 /* ---------- violations ---------- */
 route('/violations', async (p, q, id) => {

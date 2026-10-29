@@ -66,8 +66,11 @@ var Dashboard = {
     return { mode: 'trainee', groups: [], activity: null, batches: null, trend: null, trainee: {
       batch: batch ? batch.name : null, current_phase: phase ? phase.short : null, current_phase_title: phase ? phase.title : null,
       started_on: (batch && batch.starts_on) || (prog && prog.started_on) || null,
-      components: comps.slice().sort(function (x, y) { return U.cmp(x.id, y.id); }).map(function (c) {
-        var s = recs[c.id] ? recs[c.id].score : null;
+      // Ids are random strings here (Utilities.getUuid), so they carry no order. The PHP original sorted by
+      // auto-increment id, which equals seed order; the equivalent is `sequence` (Phase 1 first, Final last).
+      components: comps.slice().sort(function (x, y) { return (x.sequence - y.sequence) || U.cmp(x.id, y.id); }).map(function (c) {
+        // Always null (never undefined) when ungraded, or the client treats it as a score and shows NaN%.
+        var s = recs[c.id] && recs[c.id].score !== undefined && recs[c.id].score !== null ? recs[c.id].score : null;
         return { name: c.label, score: s, max: GradeCalc.effMax(c, totals), passed: s === null ? null : GradeCalc.isPassing(c, s, totals) };
       }),
       grades_total: comps.length, grades_entered: entered.length, grades_passed: passed.length,
