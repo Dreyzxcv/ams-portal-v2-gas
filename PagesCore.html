@@ -206,32 +206,89 @@ Forms.userEdit = async f => { const v = formVals(f); const body = { id: f.datase
 Actions.userStatus = async el => { const s = $('[name=status]').value; await busy(el, async () => { await A('users.status', { id: el.dataset.id, status: s }); toast(A.lastMessage || 'Status updated.', 'ok'); go(State.path); }); };
 Actions.userReset = async el => { const ok = await confirmDialog({ title: 'Reset password?', message: 'The current password stops working immediately and the user is signed out everywhere.', confirmText: 'Reset password', danger: true }); if (!ok) return; await busy(el, async () => { const d = await A('users.resetPassword', { id: el.dataset.id }); showCredentials(d.credentials, 'Password reset'); }); };
 
-/* ---------- batches ---------- */
-const dateRange = b => h(fmtD(b.starts_on)) + ' → ' + h(fmtD(b.ends_on));
-const daysBadge = b => b.is_ended || b.batch_ended ? badge('Ended') : (b.days_left === null || b.days_left === undefined ? badge('No end date') : badge(b.days_left + ' day' + (b.days_left === 1 ? '' : 's') + ' left', 'ok'));
+/* ---------- batches (ported 1:1 from resources/js/pages/batches/index.tsx, show.tsx and create.tsx) ---------- */
+Object.assign(ICONS, { userPlus: 'M2 21a8 8 0 0 1 13.292-6M15 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0M19 16v6M22 19h-6' });
+const bIcon = (n, px) => icon(n).replace('<svg ', '<svg style="width:' + px + 'px;height:' + px + 'px" ');
+/** 14 x 14 (size-14) violet icon tile used in the page headers. */
+const bTile = () => '<span class="chipicon t-violet" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--violet-500) 15%,transparent)">' + bIcon('batch', 24) + '</span>';
+const rxi = html => html.replace(/^<(input|select)/, '<$1 class="rx"');
+const bField = (label, id, inner) => '<div style="display:grid;gap:.5rem;margin-bottom:1.25rem"><label for="' + id + '" style="margin:0">' + h(label) + '</label>' + inner + '</div>';
+const bpager = m => { if (!m) return ''; const from = m.total ? (m.page - 1) * m.per_page + 1 : 0, to = Math.min(m.total, m.page * m.per_page);
+  return '<div class="gpager"><p class="muted" style="margin:0">' + (m.total === 0 ? 'No batches' : 'Showing ' + from + ' to ' + to + ' of ' + m.total) + '</p><div class="row" style="gap:.5rem">' +
+    (m.page > 1 ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page - 1) + '">Previous</button>' : '') + (m.page < m.last_page ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page + 1) + '">Next</button>' : '') + '</div></div>'; };
+
 route('/batches', async (p, q, id) => {
-  loadingShell('/batches', 'Batches');
+  loadingShell('/batches', '');
   const d = await A('batches.list', { search: q.search, page: q.page }); if (!current(id)) return;
-  mount(shell('/batches', 'Batches', d.can.create ? '<a class="btn primary" href="#/batches/create" data-go="/batches/create">' + icon('plus') + 'New batch</a>' : '', '<div class="toolbar">' + searchBox('Search batches') + '</div><div class="card">' +
-    table([{ h: 'Batch', f: b => '<a href="#/batches/' + h(b.id) + '" data-go="/batches/' + h(b.id) + '"><b>' + h(b.name) + '</b></a>' }, { h: 'Dates', cls: 'hide-sm', f: dateRange }, { h: 'Status', f: daysBadge }, { h: 'Trainees', cls: 'right', f: b => b.trainee_count }], d.batches, 'No batches yet.') + pager(d.meta) + '</div>'));
+  const head = '<div class="ghead"><div><h1>Batches</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Manage batches and their trainees</p></div><div class="row" style="gap:.5rem">' +
+    '<form data-form="batchSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:14rem" placeholder="Search batch name" value="' + h(q.search || '') + '" aria-label="Search batches"></div><button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Search</button></form>' +
+    (d.can.create ? '<a class="btn primary rx" href="#/batches/create" data-go="/batches/create">' + icon('plus') + 'New batch</a>' : '') + '</div></div>';
+  const rows = d.batches.length === 0 ? '<tr><td colspan="6" class="muted center" style="padding:3rem 1.25rem">No batches found.</td></tr>'
+    : d.batches.map(b => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap">' + chipIcon('batch', 'violet', 'sm') + '<span style="font-weight:500">' + h(b.name) + '</span></div></td>' +
+      '<td class="muted">' + h(b.starts_on || 'Not set') + '</td><td class="muted">' + h(b.ends_on || 'Not set') + '</td>' +
+      '<td>' + (b.is_ended ? '<span class="muted">Ended</span>' : b.days_left !== null && b.days_left !== undefined ? '<span style="font-weight:600;font-variant-numeric:tabular-nums">' + h(b.days_left) + '</span>' : '<span class="muted">-</span>') + '</td>' +
+      '<td><span style="display:inline-flex;min-width:2rem;justify-content:center;border-radius:9999px;padding:.25rem .625rem;font-size:12px;font-weight:500;background:var(--muted);font-variant-numeric:tabular-nums">' + h(b.trainee_count) + '</span></td>' +
+      '<td class="right" style="padding-right:1.25rem"><a class="btn sm rx" href="#/batches/' + h(b.id) + '" data-go="/batches/' + h(b.id) + '">Open</a></td></tr>').join('');
+  const th = '<th style="padding-left:1.25rem">Batch</th><th>Start date</th><th>End date</th><th>Days left</th><th>Trainees</th><th style="padding-right:1.25rem"></th>';
+  mount(shell('/batches', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + bpager(d.meta) + '</div>', '', 'Batches'));
 });
-const batchForm = (b, action) => '<form data-form="' + action + '" ' + (b ? 'data-id="' + h(b.id) + '"' : '') + ' novalidate>' + field('Batch name', input('name', { value: b ? b.name : '', required: true, max: 100 })) + '<div class="grid g2">' + field('Start date', input('starts_on', { type: 'date', value: b ? b.starts_on : '' })) + field('End date', input('ends_on', { type: 'date', value: b ? b.ends_on : '' })) + '</div>';
-route('/batches/create', async () => { mount(shell('/batches', 'New batch', '', '<div class="card" style="max-width:560px"><div class="bd">' + batchForm(null, 'batchCreate') + '<div class="row"><button class="btn primary" type="submit">Create batch</button><a class="btn" href="#/batches" data-go="/batches">Cancel</a></div></form></div></div>')); });
+Forms.batchSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
+
+route('/batches/create', async () => {
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap">' + bTile() + '<div><h1>New batch</h1><p class="muted" style="margin:0;font-size:14px">Create a batch, then assign trainees to it</p></div></div></div>';
+  const form = '<div class="dcard" style="padding:1.5rem"><form data-form="batchCreate" novalidate>' +
+    bField('Batch name', 'f-name', rxi(input('name', { required: true, max: 100, auto: 'off' }))) +
+    bField('Start date (optional)', 'f-starts_on', rxi(input('starts_on', { type: 'date' }))) +
+    bField('End date (optional)', 'f-ends_on', rxi(input('ends_on', { type: 'date' }))) +
+    '<div class="row" style="gap:.75rem;padding-top:.25rem"><button class="btn primary rx" type="submit">Create batch</button><a class="btn ghost rx" href="#/batches" data-go="/batches">Cancel</a></div></form></div>';
+  mount(shell('/batches', '', '', '<div style="max-width:42rem;margin:0 auto"><div class="dg">' + head + form + '</div></div>', '', [{ t: 'Batches', to: '/batches' }, { t: 'New batch', to: '/batches/create' }]));
+  const n = $('#f-name'); if (n) n.focus();
+});
 Forms.batchCreate = async f => { await submitForm(f, 'batches.create', formVals(f), d => go('/batches/' + d.id)); };
+
 route('/batches/:id', async (p, q, id) => {
-  loadingShell('/batches', 'Batch');
+  loadingShell('/batches', '');
   const d = await A('batches.show', { id: p.id }); if (!current(id)) return;
-  const b = d.batch;
-  let body = '<div class="grid g2"><div class="card"><div class="hd"><h2>Details</h2>' + (b.ends_on ? daysBadge(b) : '') + '</div><div class="bd">' +
-    (d.can.update ? batchForm(b, 'batchEdit') + '<div class="row"><button class="btn primary" type="submit">Save</button>' + (d.can['delete'] ? '<button type="button" class="btn danger" data-act="batchDelete" data-id="' + h(b.id) + '">' + icon('trash') + 'Delete batch</button>' : '') + '</div></form>' : '<p><b>' + h(b.name) + '</b></p><p class="muted">' + dateRange(b) + '</p>') + '</div></div>';
-  body += '<div class="card"><div class="hd"><h2>Trainees (' + d.members.length + ')</h2></div>' + (d.can.assign ? '<div class="bd" style="border-bottom:1px solid var(--border)"><div class="row"><select id="assign-user" style="flex:1;min-width:180px"><option value="">Select a trainee…</option>' + d.available.map(a => '<option value="' + h(a.id) + '">' + h(a.name) + ' (@' + h(a.username) + ')' + (a.current_batch ? ' — in ' + h(a.current_batch) : '') + '</option>').join('') + '</select><button class="btn primary" data-act="batchAssign" data-id="' + h(b.id) + '">Assign</button></div><p class="muted small" style="margin:8px 0 0">Assigning a trainee who is already in another batch moves them; their history is kept.</p></div>' : '') +
-    table([{ h: 'Trainee', f: m => '<b>' + h(m.name) + '</b><div class="muted small">@' + h(m.username) + '</div>' }, { h: 'Assigned', cls: 'hide-sm', f: m => h(fmtDT(m.assigned_at)) }, { h: '', cls: 'right', f: m => d.can.assign ? '<button class="btn sm danger" data-act="batchUnassign" data-id="' + h(b.id) + '" data-aid="' + h(m.id) + '">Remove</button>' : '' }], d.members, 'No trainees in this batch yet.') + '</div></div>';
-  mount(shell('/batches', b.name, '<a class="btn" href="#/batches" data-go="/batches">← All batches</a>', body));
+  const b = d.batch, off = d.can.update ? '' : true;
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0">' + bTile() + '<div style="min-width:0"><h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(b.name) + '</h1><p class="muted" style="margin:0;font-size:14px">' + d.members.length + ' active ' + (d.members.length === 1 ? 'trainee' : 'trainees') + '</p></div></div>' +
+    '<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#/batches" data-go="/batches">' + icon('arrowLeft') + 'Back to batches</a></div>';
+
+  const details = '<section class="dcard"><header style="padding:1rem 1.25rem .75rem"><h2>Details</h2></header><form data-form="batchEdit" data-id="' + h(b.id) + '" style="padding:0 1.25rem 1.25rem" novalidate>' +
+    bField('Batch name', 'f-name', rxi(input('name', { value: b.name, required: true, max: 100, disabled: off }))) +
+    bField('Start date', 'f-starts_on', rxi(input('starts_on', { type: 'date', value: b.starts_on || '', disabled: off }))) +
+    bField('End date', 'f-ends_on', rxi(input('ends_on', { type: 'date', value: b.ends_on || '', disabled: off }))) +
+    (d.can.update ? '<button class="btn primary rx" type="submit">Save changes</button>' : '') + '</form></section>';
+
+  const assign = d.can.assign ? '<div style="background:color-mix(in oklab,var(--muted) 40%,transparent);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1rem 1.25rem">' +
+    '<form data-form="batchAssign" data-id="' + h(b.id) + '" class="row" style="align-items:flex-end;gap:.75rem" novalidate><div style="display:grid;gap:.5rem;min-width:16rem;flex:1"><label for="f-user_id" style="margin:0">Add trainee</label>' +
+    '<select class="rx" name="user_id" id="f-user_id" required><option value="" disabled selected>Select a trainee</option>' + d.available.map(a => '<option value="' + h(a.id) + '">' + h(a.name) + ' (' + h(a.username) + ')' + (a.current_batch ? ' - currently in ' + h(a.current_batch) : '') + '</option>').join('') + '</select></div>' +
+    '<button class="btn primary rx" type="submit">' + icon('userPlus') + 'Assign</button></form>' +
+    '<p class="muted" style="margin:.5rem 0 0;font-size:12px">Choosing a trainee who is already in another batch moves them to this one.</p></div>' : '';
+
+  const mrows = d.members.length === 0 ? '<tr><td colspan="3" class="muted center" style="padding:3rem 1.25rem">No trainees in this batch yet.</td></tr>'
+    : d.members.map(m => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(m.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(m.name) + '</div><div class="muted" style="font-size:12px">@' + h(m.username) + '</div></div></div></td>' +
+      '<td class="muted">' + h(m.assigned_at ? new Date(m.assigned_at).toLocaleDateString() : '') + '</td>' +
+      '<td class="right" style="padding-right:1.25rem">' + (d.can.assign ? '<button class="btn sm rx" data-act="batchUnassign" data-id="' + h(b.id) + '" data-aid="' + h(m.id) + '" data-name="' + h(m.name) + '">Remove</button>' : '') + '</td></tr>').join('');
+  const trainees = '<section class="dcard span2" style="overflow:hidden"><header class="row" style="gap:.5rem;padding:1rem 1.25rem .75rem"><span class="muted" style="display:grid;width:1rem;height:1rem">' + icon('users') + '</span><h2>Trainees</h2></header>' + assign +
+    '<div class="gtab" style="border:0;border-radius:0;box-shadow:none;background:none"><div style="overflow-x:auto"><table><thead><tr><th style="padding-left:1.25rem">Trainee</th><th>Assigned</th><th style="padding-right:1.25rem"></th></tr></thead><tbody>' + mrows + '</tbody></table></div></div></section>';
+
+  const del = d.can['delete'] ? '<section class="row between" style="gap:1rem;border-radius:1rem;border:1px solid color-mix(in oklab,var(--rose-500) 25%,transparent);background:color-mix(in oklab,var(--rose-500) 5%,transparent);padding:1.25rem">' +
+    '<div class="row" style="gap:.75rem;align-items:flex-start;flex-wrap:nowrap">' + chipIcon('trash', 'rose', 'sm') + '<div><h2>Delete batch</h2><p class="muted" style="margin:0;font-size:14px">Only possible when the batch has no active trainees. Past assignment history is kept.</p></div></div>' +
+    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem"><button type="button" class="btn danger solid rx" data-act="batchDelete" data-id="' + h(b.id) + '" data-name="' + h(b.name) + '">Delete batch</button><div class="err" id="batch-err" style="margin:0"></div></div></section>' : '';
+
+  mount(shell('/batches', '', '', '<div class="dg">' + head + '<div class="dg dg-trend">' + details + trainees + '</div>' + del + '</div>', '', [{ t: 'Batches', to: '/batches' }, { t: 'Batch', to: '/batches' }]));
 });
-Forms.batchEdit = async f => { const v = formVals(f); v.id = f.dataset.id; await submitForm(f, 'batches.update', v, () => go(State.path)); };
-Actions.batchAssign = async el => { const u = $('#assign-user').value; if (!u) return toast('Choose a trainee first.', 'bad'); await busy(el, async () => { await A('batches.assign', { id: el.dataset.id, user_id: u }); toast(A.lastMessage, 'ok'); go(State.path); }); };
-Actions.batchUnassign = async el => { const ok = await confirmDialog({ title: 'Remove trainee?', message: 'They will no longer belong to this batch.', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('batches.unassign', { id: el.dataset.id, assignment_id: el.dataset.aid }); toast(A.lastMessage, 'ok'); go(State.path); }); };
-Actions.batchDelete = async el => { const ok = await confirmDialog({ title: 'Delete batch?', message: 'This cannot be undone. The batch must have no trainees.', confirmText: 'Delete', danger: true }); if (!ok) return; await busy(el, async () => { await A('batches.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go('/batches'); }); };
+Forms.batchEdit = async f => { const v = formVals(f); v.id = f.dataset.id; await submitForm(f, 'batches.update', v, () => go(State.path, false, true)); };
+Forms.batchAssign = async f => { await submitForm(f, 'batches.assign', { id: f.dataset.id, user_id: formVals(f).user_id }, () => go(State.path, false, true)); };
+Actions.batchUnassign = async el => { const ok = await confirmDialog({ title: 'Remove trainee?', message: 'Remove ' + el.dataset.name + ' from this batch?', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('batches.unassign', { id: el.dataset.id, assignment_id: el.dataset.aid }); toast(A.lastMessage, 'ok'); go(State.path, false, true); }); };
+Actions.batchDelete = async el => {
+  const ok = await confirmDialog({ title: 'Delete batch?', message: 'Delete batch "' + el.dataset.name + '"?', confirmText: 'Delete', danger: true }); if (!ok) return;
+  const box = $('#batch-err'); if (box) box.textContent = '';
+  el.disabled = true;
+  try { await A('batches.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go('/batches'); }
+  catch (e) { if (box) box.textContent = e.message || 'Something went wrong.'; else toast(e.message || 'Something went wrong.', 'bad'); }
+  finally { if (el.isConnected) el.disabled = false; }
+};
 
 /* ---------- grades (ported 1:1 from resources/js/pages/grades/index.tsx and show.tsx) ---------- */
 const gfmt = v => (v === null || v === undefined ? '-' : String(Number(v)));
@@ -315,39 +372,98 @@ route('/grades/:id', async (p, q, id) => {
 Forms.gradeSave = async f => { const v = formVals(f); await submitForm(f, 'grades.save', { trainee_id: f.dataset.tid, component_id: f.dataset.cid, score: v.score, reason: v.reason }, () => go(State.path)); };
 document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('form.gedit'); if (f) { const b = f.querySelector('[type=submit]'); if (b) b.disabled = false; } });
 
-/* ---------- violations ---------- */
+/* ---------- violations (ported 1:1 from resources/js/pages/violations/index.tsx, create.tsx and edit.tsx) ---------- */
+const vTile = () => '<span class="chipicon t-rose" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--rose-500) 15%,transparent)">' + bIcon('alert', 24) + '</span>';
+const vText = (name, value, o) => '<textarea class="rx" name="' + name + '" id="f-' + name + '" rows="5" maxlength="2000" required style="padding-top:.5rem;padding-bottom:.5rem">' + h(value) + '</textarea>';
+const vToday = () => new Date().toISOString().slice(0, 10);
+
 route('/violations', async (p, q, id) => {
-  loadingShell('/violations', 'Violations');
+  loadingShell('/violations', '');
   const d = await A('violations.list', { search: q.search, page: q.page }); if (!current(id)) return;
   const mgr = d.can.create;
-  const cols = []; if (mgr) cols.push({ h: 'Trainee', f: v => '<b>' + h(v.trainee_name) + '</b><div class="muted small">@' + h(v.trainee_username) + '</div>' });
-  cols.push({ h: 'Date', cls: 'nowrap', f: v => h(fmtD(v.occurred_on)) }, { h: 'Description', f: v => '<div style="white-space:pre-wrap;max-width:520px">' + h(v.description) + '</div>' }, { h: 'Issued by', cls: 'hide-sm', f: v => h(v.issued_by || '—') });
-  if (mgr) cols.push({ h: '', cls: 'right nowrap', f: v => '<a class="btn sm" href="#/violations/' + h(v.id) + '/edit" data-go="/violations/' + h(v.id) + '/edit">' + icon('edit') + 'Edit</a> <button class="btn sm danger" data-act="violationDelete" data-id="' + h(v.id) + '" aria-label="Delete">' + icon('trash') + '</button>' });
-  mount(shell('/violations', mgr ? 'Violations' : 'My violations', mgr ? '<a class="btn primary" href="#/violations/create" data-go="/violations/create">' + icon('plus') + 'Record violation</a>' : '', (mgr ? '<div class="toolbar">' + searchBox('Search by trainee') + '</div>' : '') + '<div class="card">' + table(cols, d.violations, mgr ? 'No violations recorded.' : 'You have no recorded violations.') + pager(d.meta) + '</div>'));
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap">' + vTile() + '<div><h1>Violations</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Recorded violations and who issued them</p></div></div>' +
+    (mgr ? '<div class="row" style="gap:.5rem"><form data-form="violationSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:16rem" placeholder="Search trainee name or username" value="' + h(q.search || '') + '" aria-label="Search violations"></div><button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Search</button></form>' +
+      '<a class="btn primary rx" href="#/violations/create" data-go="/violations/create">' + icon('plus') + 'New violation</a></div>' : '') + '</div>';
+  const rows = d.violations.length === 0 ? '<tr><td colspan="5" class="muted center" style="padding:3rem 1.25rem">No violations found.</td></tr>'
+    : d.violations.map(v => '<tr style="vertical-align:top"><td class="nowrap" style="padding-left:1.25rem"><span class="gs-fail" style="display:inline-flex;border-radius:9999px;padding:.25rem .625rem;font-size:12px;font-weight:500;background:var(--g-bg);color:var(--g-fg)">' + h(v.occurred_on) + '</span></td>' +
+      '<td><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(v.trainee_name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(v.trainee_name) + '</div><div class="muted" style="font-size:12px">@' + h(v.trainee_username) + '</div></div></div></td>' +
+      '<td style="max-width:28rem;overflow-wrap:anywhere;white-space:pre-wrap">' + h(v.description) + '</td><td class="muted">' + h(v.issued_by || '-') + '</td>' +
+      '<td style="padding-right:1.25rem">' + (v.can_edit ? '<div class="row" style="justify-content:flex-end;gap:.5rem;flex-wrap:nowrap"><a class="btn sm rx" href="#/violations/' + h(v.id) + '/edit" data-go="/violations/' + h(v.id) + '/edit">Edit</a><button class="btn sm danger solid rx" data-act="violationDelete" data-id="' + h(v.id) + '">Delete</button></div>' : '') + '</td></tr>').join('');
+  const th = '<th style="padding-left:1.25rem">Date</th><th>Trainee</th><th>Description</th><th>Issued by</th><th style="padding-right:1.25rem"></th>';
+  const m = d.meta, from = m.total ? (m.page - 1) * m.per_page + 1 : 0, to = Math.min(m.total, m.page * m.per_page);
+  const pg = '<div class="gpager"><p class="muted" style="margin:0">' + (m.total === 0 ? 'No violations' : 'Showing ' + from + ' to ' + to + ' of ' + m.total) + '</p><div class="row" style="gap:.5rem">' +
+    (m.page > 1 ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page - 1) + '">Previous</button>' : '') + (m.page < m.last_page ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page + 1) + '">Next</button>' : '') + '</div></div>';
+  mount(shell('/violations', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + pg + '</div>', '', 'Violations'));
 });
-const violationForm = (v, trainees) => '<form data-form="' + (v ? 'violationEdit' : 'violationCreate') + '" ' + (v ? 'data-id="' + h(v.id) + '"' : '') + ' novalidate>' + (v ? field('Trainee', '<input type="text" disabled value="' + h(v.trainee_name) + ' (@' + h(v.trainee_username) + ')">') : field('Trainee', select('trainee_id', [{ value: '', label: 'Select a trainee…' }].concat(trainees.map(t => ({ value: t.id, label: t.name + ' (@' + t.username + ')' }))), ''))) +
-  field('Date of violation', input('occurred_on', { type: 'date', value: v ? v.occurred_on : new Date().toISOString().slice(0, 10), required: true, maxn: new Date().toISOString().slice(0, 10) })) + field('Description', '<textarea name="description" maxlength="2000" required>' + h(v ? v.description : '') + '</textarea>') + '<div class="row"><button class="btn primary" type="submit">' + (v ? 'Save changes' : 'Record violation') + '</button><a class="btn" href="#/violations" data-go="/violations">Cancel</a></div></form>';
-route('/violations/create', async (p, q, id) => { loadingShell('/violations', 'Record violation'); const d = await A('violations.options'); if (!current(id)) return; mount(shell('/violations', 'Record violation', '', '<div class="card" style="max-width:640px"><div class="bd">' + violationForm(null, d.trainees) + '</div></div>')); });
-Forms.violationCreate = async f => { await submitForm(f, 'violations.create', formVals(f), () => go('/violations')); };
-route('/violations/:id/edit', async (p, q, id) => { loadingShell('/violations', 'Edit violation'); const d = await A('violations.get', { id: p.id }); if (!current(id)) return; mount(shell('/violations', 'Edit violation', '', '<div class="card" style="max-width:640px"><div class="bd">' + violationForm(d.violation) + '</div></div>')); });
-Forms.violationEdit = async f => { const v = formVals(f); v.id = f.dataset.id; await submitForm(f, 'violations.update', v, () => go('/violations')); };
-Actions.violationDelete = async el => { const ok = await confirmDialog({ title: 'Delete violation?', message: 'The record is removed from lists and reports. This action is logged.', confirmText: 'Delete', danger: true }); if (!ok) return; await busy(el, async () => { await A('violations.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path + qs(State.q)); }); };
+Forms.violationSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
 
-/* ---------- progress ---------- */
+route('/violations/create', async (p, q, id) => {
+  loadingShell('/violations', '');
+  const d = await A('violations.options'); if (!current(id)) return;
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap">' + vTile() + '<div><h1>New violation</h1><p class="muted" style="margin:0;font-size:14px">You will be recorded as the person who issued it</p></div></div></div>';
+  const form = '<div class="dcard" style="padding:1.5rem"><form data-form="violationCreate" novalidate>' +
+    bField('Trainee', 'f-trainee_id', '<select class="rx" name="trainee_id" id="f-trainee_id" required><option value="" disabled selected>Select a trainee</option>' + d.trainees.map(t => '<option value="' + h(t.id) + '">' + h(t.name) + ' (' + h(t.username) + ')</option>').join('') + '</select>') +
+    bField('Date of violation', 'f-occurred_on', rxi(input('occurred_on', { type: 'date', value: vToday(), maxn: vToday(), required: true }))) +
+    bField('Description', 'f-description', vText('description', '')) +
+    '<div class="row" style="gap:.75rem;padding-top:.25rem"><button class="btn primary rx" type="submit">Save violation</button><a class="btn ghost rx" href="#/violations" data-go="/violations">Cancel</a></div></form></div>';
+  mount(shell('/violations', '', '', '<div style="max-width:42rem;margin:0 auto"><div class="dg">' + head + form + '</div></div>', '', [{ t: 'Violations', to: '/violations' }, { t: 'New violation', to: '/violations/create' }]));
+});
+Forms.violationCreate = async f => { await submitForm(f, 'violations.create', formVals(f), () => go('/violations')); };
+
+route('/violations/:id/edit', async (p, q, id) => {
+  loadingShell('/violations', '');
+  const d = await A('violations.get', { id: p.id }); if (!current(id)) return;
+  const v = d.violation;
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0">' + vTile() + '<div style="min-width:0"><h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Edit violation</h1><p class="muted" style="margin:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Trainee: ' + h(v.trainee_name || 'Unknown') + '. The trainee cannot be changed.</p></div></div>' +
+    '<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#/violations" data-go="/violations">' + icon('arrowLeft') + 'Back</a></div>';
+  const form = '<div class="dcard" style="padding:1.5rem"><form data-form="violationEdit" data-id="' + h(v.id) + '" novalidate>' +
+    bField('Date of violation', 'f-occurred_on', rxi(input('occurred_on', { type: 'date', value: v.occurred_on || '', maxn: vToday(), required: true }))) +
+    bField('Description', 'f-description', vText('description', v.description)) +
+    '<div class="row" style="gap:.75rem;padding-top:.25rem"><button class="btn primary rx" type="submit">Save changes</button><a class="btn ghost rx" href="#/violations" data-go="/violations">Cancel</a></div></form></div>';
+  mount(shell('/violations', '', '', '<div style="max-width:42rem;margin:0 auto"><div class="dg">' + head + form + '</div></div>', '', [{ t: 'Violations', to: '/violations' }, { t: 'Edit violation', to: '/violations' }]));
+});
+Forms.violationEdit = async f => { const v = formVals(f); v.id = f.dataset.id; await submitForm(f, 'violations.update', v, () => go('/violations')); };
+Actions.violationDelete = async el => { const ok = await confirmDialog({ title: 'Delete violation?', message: 'Delete this violation?', confirmText: 'Delete', danger: true }); if (!ok) return; await busy(el, async () => { await A('violations.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path + qs(State.q), false, true); }); };
+
+/* ---------- progress (ported 1:1 from resources/js/pages/progress/index.tsx and edit.tsx) ---------- */
+const pPill = (extra, text) => '<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:.25rem .625rem;font-size:12px;font-weight:500;' + extra + '">' + h(text) + '</span>';
+const pTile = (ic, tone) => '<span class="chipicon t-' + tone + '" style="width:2.5rem;height:2.5rem">' + bIcon(ic, 20) + '</span>';
+const pDays = t => t.batch_ended ? '<span class="muted">Ended</span>' : t.remaining_days !== null && t.remaining_days !== undefined ? '<span style="font-weight:600;font-variant-numeric:tabular-nums">' + h(t.remaining_days) + '</span>' : '<span class="muted">-</span>';
+
 route('/progress', async (p, q, id) => {
-  loadingShell('/progress', 'Progress');
+  loadingShell('/progress', '');
   const d = await A('progress.list', { search: q.search, page: q.page }); if (!current(id)) return;
   if (d.redirect) return go('/dashboard');
-  mount(shell('/progress', 'Progress', '', '<div class="toolbar">' + searchBox('Search active trainees') + '</div><div class="card">' + table([{ h: 'Trainee', f: t => '<b>' + h(t.name) + '</b><div class="muted small">@' + h(t.username) + '</div>' }, { h: 'Current phase', f: t => t.current_phase ? badge(t.current_phase, 'info') : '—' }, { h: 'Started', cls: 'hide-sm', f: t => h(fmtD(t.started_on)) },
-    { h: 'Remaining', f: t => t.batch_ended ? badge('Ended') : (t.remaining_days === null ? '—' : h(t.remaining_days + ' days')) }, { h: 'Last update', cls: 'hide-sm', f: t => t.updated_at ? h(fmtDT(t.updated_at)) + '<div class="muted small">' + h(t.updated_by || '') + '</div>' : '<span class="muted">Not set</span>' },
-    { h: '', cls: 'right', f: t => '<a class="btn sm" href="#/progress/' + h(t.id) + '" data-go="/progress/' + h(t.id) + '">' + icon('edit') + 'Update</a>' }], d.trainees, 'No active trainees.') + pager(d.meta) + '</div>'));
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap"><span class="chipicon t-teal" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--teal-500) 15%,transparent)">' + bIcon('hourglass', 24) + '</span>' +
+    '<div><h1>Progress</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Current phase (1 to ' + h(d.max_phase) + ') and days left based on each trainee’s batch end date</p></div></div>' +
+    '<form data-form="progressSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:16rem" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div><button class="btn primary rx" type="submit">Search</button></form></div>';
+  const rows = d.trainees.length === 0 ? '<tr><td colspan="6" class="muted center" style="padding:3rem 1.25rem">No trainees found.</td></tr>'
+    : d.trainees.map(t => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(t.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + '</div><div class="muted" style="font-size:12px">@' + h(t.username) + '</div></div></div></td>' +
+      '<td>' + (t.current_phase !== null && t.current_phase !== undefined ? pPill('background:color-mix(in oklab,var(--sky-500) 10%,transparent);color:var(--info-fg)', t.current_phase) : pPill('background:var(--muted);color:var(--muted-foreground)', 'Not set')) + '</td>' +
+      '<td class="muted">' + h(t.started_on || 'Not set') + '</td><td>' + pDays(t) + '</td>' +
+      '<td class="muted">' + (t.updated_at ? '<div>' + h(new Date(t.updated_at).toLocaleString()) + '</div>' + (t.updated_by ? '<div style="font-size:12px">by ' + h(t.updated_by) + '</div>' : '') : '-') + '</td>' +
+      '<td class="right" style="padding-right:1.25rem"><a class="btn sm rx" href="#/progress/' + h(t.id) + '" data-go="/progress/' + h(t.id) + '">Update</a></td></tr>').join('');
+  const th = '<th style="padding-left:1.25rem">Trainee</th><th>Phase</th><th>Start date</th><th>Days remaining</th><th>Last update</th><th style="padding-right:1.25rem"></th>';
+  mount(shell('/progress', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + gpager(d.meta) + '</div>', '', 'Progress'));
 });
+Forms.progressSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
+
 route('/progress/:id', async (p, q, id) => {
-  loadingShell('/progress', 'Update progress');
+  loadingShell('/progress', '');
   const d = await A('progress.get', { id: p.id }); if (!current(id)) return;
-  const opts = []; for (let i = 1; i <= d.max_phase; i++) opts.push({ value: i, label: 'Phase ' + i });
-  mount(shell('/progress', d.trainee.name, '<a class="btn" href="#/progress" data-go="/progress">← Back</a>', '<div class="grid g2"><div class="card"><div class="hd"><h2>Phase</h2></div><div class="bd"><form data-form="progressSave" data-id="' + h(d.trainee.id) + '" novalidate>' + field('Current phase', select('current_phase', opts, d.progress.current_phase)) + '<button class="btn primary" type="submit">Save</button></form><p class="muted small" style="margin:12px 0 0">' + (d.progress.exists ? 'Last updated ' + h(fmtDT(d.progress.updated_at)) + (d.progress.updated_by ? ' by ' + h(d.progress.updated_by) : '') : 'No phase has been recorded yet.') + '</p></div></div>' +
-    '<div class="card"><div class="hd"><h2>Batch schedule</h2></div><div class="bd"><p style="margin-top:0">Starts: <b>' + h(fmtD(d.batch_starts_on)) + '</b></p><p>Ends: <b>' + h(fmtD(d.batch_ends_on)) + '</b></p>' + (d.batch_ended ? badge('Batch ended') : d.remaining_days === null ? '<span class="muted">No end date set.</span>' : badge(d.remaining_days + ' days remaining', 'ok')) + '</div></div></div>', '@' + h(d.trainee.username)));
+  const t = d.trainee, pr = d.progress, opts = []; for (let i = 1; i <= d.max_phase; i++) opts.push({ value: i, label: 'Phase ' + i });
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0"><div class="gav" aria-hidden="true">' + h(initials(t.name)) + '</div><div style="min-width:0"><h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + '</h1><p class="muted" style="margin:0;font-size:14px">@' + h(t.username) + ' · Update training progress</p></div></div>' +
+    '<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#/progress" data-go="/progress">' + icon('arrowLeft') + 'Back to progress</a></div>';
+  const stats = '<div style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr))">' +
+    '<div class="dcard" style="padding:1.25rem">' + pTile('calendarClock', 'amber') + '<div style="margin-top:1rem;font-size:36px;line-height:1;font-weight:600;letter-spacing:-.025em;font-variant-numeric:tabular-nums">' + h(d.batch_ended ? 'Ended' : (d.remaining_days !== null && d.remaining_days !== undefined ? d.remaining_days : '-')) + '</div>' +
+    '<div class="muted" style="margin-top:.5rem;font-size:14px">' + (d.batch_ends_on ? 'Based on batch end date ' + h(d.batch_ends_on) : 'Set an end date on the trainee’s batch to show days remaining') + '</div></div>' +
+    '<div class="dcard" style="padding:1.25rem">' + pTile('clock', 'sky') + '<div style="margin-top:1rem;font-size:14px;font-weight:500">' + (pr.updated_at ? h(new Date(pr.updated_at).toLocaleString()) : 'No progress recorded yet') + '</div>' +
+    '<div class="muted" style="margin-top:.5rem;font-size:14px">Last update' + (pr.updated_by ? ' by ' + h(pr.updated_by) : '') + '</div></div></div>';
+  const form = '<section class="dcard"><header style="border-bottom:1px solid var(--border);padding:1rem 1.25rem"><h2>Progress details</h2></header><form data-form="progressSave" data-id="' + h(t.id) + '" style="padding:1.25rem" novalidate>' +
+    bField('Current phase', 'f-current_phase', rxi(select('current_phase', opts, pr.current_phase))) +
+    '<div style="display:grid;gap:.25rem;margin-bottom:1.25rem"><label style="margin:0">Start date</label><p class="muted" style="margin:0;font-size:14px">' + h(d.batch_starts_on || 'Not set') + ' (from the trainee\'s batch)</p></div>' +
+    '<div class="row" style="gap:.75rem;padding-top:.25rem"><button class="btn primary rx" type="submit">Save progress</button><a class="btn ghost rx" href="#/progress" data-go="/progress">Cancel</a></div></form></section>';
+  mount(shell('/progress', '', '', '<div style="max-width:48rem;margin:0 auto"><div class="dg">' + head + stats + form + '</div></div>', '', [{ t: 'Progress', to: '/progress' }, { t: 'Update progress', to: '/progress' }]));
 });
-Forms.progressSave = async f => { await submitForm(f, 'progress.save', { id: f.dataset.id, current_phase: formVals(f).current_phase }, () => go('/progress')); };
+Forms.progressSave = async f => { await submitForm(f, 'progress.save', { id: f.dataset.id, current_phase: formVals(f).current_phase }, () => go(State.path, false, true)); };
 </script>

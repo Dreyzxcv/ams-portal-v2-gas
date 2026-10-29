@@ -40,20 +40,92 @@
 .qz-fin{display:flex;align-items:center;justify-content:space-between;gap:.5rem;width:100%;max-width:48rem;margin:0 auto;padding:.75rem 1rem}
 .qz .btn{border-radius:.75rem}.qz .btn .xs{display:none}@media(max-width:639px){.qz .btn .xs{display:inline}.qz .btn .sm-up{display:none}}
 @media(min-width:640px){.qz-t h1{font-size:16px;line-height:24px}.qz-clock{font-size:18px;line-height:28px}.qz-main{padding-top:1.5rem;padding-bottom:1.5rem}.qz-card{padding:1.5rem}.qz-qh h2{font-size:18px}}
+
+/* ===== Quiz pages (manager/trainee/review) ported from ams-portal-v2 quizzes/*.tsx ===== */
+.qx-wrap{display:grid;gap:1rem;width:100%;margin:0 auto}.qx-wrap>*{min-width:0}
+.qx-w3{max-width:48rem}.qx-w4{max-width:56rem}.qx-w5{max-width:64rem}.qx-w7{max-width:80rem}
+.qx-card{background:var(--card);border:1px solid var(--border);border-radius:1rem;box-shadow:var(--sh-xs);overflow:hidden}
+.qx-pad{padding:1.25rem}@media(min-width:640px){.qx-pad.lg{padding:1.5rem}}
+.qx-card input[type=text],.qx-card input[type=number],.qx-card select,.qx-card textarea,.qx-grant select{border-radius:.75rem}
+.qx-hico{display:flex;width:3rem;height:3rem;flex:none;align-items:center;justify-content:center;border-radius:1rem;background:color-mix(in oklab,var(--sky-500) 10%,transparent);color:var(--sky-700)}
+:root[data-theme="dark"] .qx-hico{color:var(--sky-300)}.qx-hico svg{width:1.5rem;height:1.5rem}
+.qx-note{border:1px solid var(--border);border-radius:.75rem;padding:.75rem 1rem;font-size:14px;color:var(--muted-foreground)}
+.qx-g2{display:grid;gap:1.25rem;grid-template-columns:minmax(0,1fr)}.qx-g2 .field,.qx-pad .field{margin:0}
+@media(min-width:640px){.qx-g2{grid-template-columns:repeat(2,minmax(0,1fr))}.qx-g2 .span2{grid-column:span 2}.qx-g2.pts{grid-template-columns:minmax(0,1fr) 150px}}
+.qx-sh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;border-bottom:1px solid var(--border);padding:1rem 1.25rem}.qx-sh h2{font-size:16px;font-weight:600}.qx-sh svg{width:1rem;height:1rem;color:var(--muted-foreground)}
+.qx-secth{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem}.qx-secth h2{font-size:18px;font-weight:600}
+.qx-qh{display:flex;align-items:center;justify-content:space-between;gap:.75rem}.qx-qh h3{font-size:16px;font-weight:600}
+.qx-num{display:flex;width:2rem;height:2rem;flex:none;align-items:center;justify-content:center;border-radius:.625rem;background:color-mix(in oklab,var(--sky-500) 10%,transparent);color:var(--sky-700);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+:root[data-theme="dark"] .qx-num{color:var(--sky-300)}
+.qx-q{display:grid;gap:1rem}
+.qx-ib:disabled{opacity:.4;pointer-events:none}
+.qx-opts{border:0;padding:0;margin:0;display:grid;gap:.75rem;min-width:0}.qx-opts legend{font-size:14px;font-weight:500;margin-bottom:.75rem;padding:0}
+.qx-opts .opt{margin:0;gap:.75rem}.qx-opts .opt:has(input[type=radio]:checked) .q-opt{border-color:color-mix(in oklab,var(--emerald-500) 60%,var(--border))}
+.qx-add{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;border:1.5px dashed var(--border);border-radius:1rem;padding:1rem 1.25rem;background:color-mix(in oklab,var(--muted) 30%,transparent)}
+.qx-foot{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
+.qx-tcard{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;padding:1.25rem;transition:background-color .15s}.qx-tcard:hover{background:color-mix(in oklab,var(--muted) 30%,transparent)}
+.qx-ico{display:flex;width:2.5rem;height:2.5rem;flex:none;align-items:center;justify-content:center;border-radius:.75rem;color:var(--tc);background:color-mix(in oklab,var(--tb) 10%,transparent)}.qx-ico svg{width:1.25rem;height:1.25rem}
+.qx-chip{display:inline-flex;align-items:center;border-radius:9999px;padding:.25rem .625rem;font-size:12px;font-weight:500;color:var(--tc);background:color-mix(in oklab,var(--tb) 10%,transparent)}.t-muted.qx-tcard .qx-chip,.t-muted .qx-chip{background:var(--muted)}
+.qx-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;font-size:12px}.qx-meta svg{width:.875rem;height:.875rem}
+.qx-list{list-style:none;margin:0;padding:0;display:grid;gap:.75rem}
+.qx-grant{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.75rem;padding:1.25rem;border-bottom:1px solid var(--border);background:color-mix(in oklab,var(--muted) 40%,transparent)}.qx-grant .field{flex:1;min-width:200px;margin:0}
+.qx-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 1.25rem}.qx-row+.qx-row{border-top:1px solid var(--border)}
+.qx-qtop{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:.75rem}.qx-qtop h2{font-size:16px;font-weight:500;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.qx-ans{list-style:none;margin:.75rem 0 0;padding:0;display:grid;gap:.5rem;font-size:14px}
+.qx-ans li{border:1px solid var(--border);border-radius:.75rem;padding:.5rem .75rem;overflow-wrap:anywhere}
+.qx-ans li.right{border-color:color-mix(in oklab,var(--emerald-500) 40%,transparent);background:color-mix(in oklab,var(--emerald-500) 10%,transparent)}
+.qx-ans li.wrong{border-color:color-mix(in oklab,var(--rose-500) 40%,transparent);background:color-mix(in oklab,var(--rose-500) 10%,transparent)}
+.qx-resp{min-height:5rem;border-radius:.75rem;background:color-mix(in oklab,var(--muted) 50%,transparent);padding:.75rem;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:.75rem 0}
+.qx-sum{display:flex;flex-wrap:wrap;gap:1.5rem;font-size:14px}.qx-sum p{margin:0}.qx-sum b{font-weight:600;font-variant-numeric:tabular-nums}
+.qx-rules{list-style:none;margin:0;padding:0;display:grid;gap:1rem;grid-template-columns:minmax(0,1fr)}@media(min-width:640px){.qx-rules{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.qx-rules li{display:flex;gap:.75rem}.qx-rules .ri{display:flex;width:2.25rem;height:2.25rem;flex:none;align-items:center;justify-content:center;border-radius:.75rem;background:var(--background);color:var(--muted-foreground)}.qx-rules .ri svg{width:1rem;height:1rem}
+.qx-rules b{display:block;font-size:14px;font-weight:500}.qx-rules span{display:block;margin-top:.125rem;font-size:12px;line-height:1.6;color:var(--muted-foreground)}
+.qx-state{display:flex;align-items:flex-start;gap:.75rem;border:1px solid var(--border);border-radius:.75rem;background:color-mix(in oklab,var(--muted) 40%,transparent);padding:1rem;font-size:14px}.qx-state p{margin:0}
 </style>
 <script>
 /* ===== Quizzes: manager, trainee attempt, review ===== */
+Object.assign(ICONS, {
+  play: 'M6 3l14 9-14 9z',
+  clipboardCheck: 'M8 2h8a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 14l2 2 4-4',
+  userPlus: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6',
+  save: 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8'
+});
 const qStatus = s => statusBadge(s).replace(/>(\w+)</, (m, t) => '>' + ({ in_progress: 'In progress', graded: 'Graded', submitted: 'Awaiting review', available: 'Available' }[s] || t) + '<');
+const qDur = m => { const hr = Math.floor(m / 60), r = m % 60; if (!hr) return m + (m === 1 ? ' minute' : ' minutes'); const hs = hr + (hr === 1 ? ' hour' : ' hours'); return r === 0 ? hs : hs + ' ' + r + ' min'; };
+const qHead = (title, sub, actions, ic) => `<header class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0">${ic ? `<span class="qx-hico" aria-hidden="true">${icon(ic)}</span>` : ''}<div style="min-width:0"><h1 style="overflow:hidden;text-overflow:ellipsis">${h(title)}</h1>${sub ? `<p class="muted" style="margin:.25rem 0 0;font-size:14px">${sub}</p>` : ''}</div></div>${actions ? `<div class="row" style="gap:.5rem">${actions}</div>` : ''}</header>`;
+const qBtn = (to, cls, inner) => `<a class="btn ${cls}" href="#${to}" data-go="${to}">${inner}</a>`;
+const QT = {
+  in_progress: { label: 'In progress', ic: 'play', tone: 'amber', action: 'Continue quiz', primary: true, order: 0 },
+  available: { label: 'Available', ic: 'quiz', tone: 'sky', action: 'View quiz', primary: false, order: 1 },
+  submitted: { label: 'Awaiting review', ic: 'hourglass', tone: 'muted', action: 'View status', primary: false, order: 2 },
+  graded: { label: 'Graded', ic: 'clipboardCheck', tone: 'emerald', action: 'View status', primary: false, order: 3 }
+};
 
+/* ---------- list (manager table / trainee cards) ---------- */
 route('/quizzes', async (p, q, id) => {
   loadingShell('/quizzes', 'Quizzes');
   const d = await A('quizzes.list'); if (!current(id)) return;
   if (d.mode === 'trainee') {
-    return mount(shell('/quizzes', 'My quizzes', '', d.quizzes.length ? '<div class="grid g2">' + d.quizzes.map(z => '<div class="card"><div class="bd stack"><div class="row between"><h2>' + h(z.title) + '</h2>' + qStatus(z.status) + '</div><div class="muted small">' + h(z.phase) + ' · ' + z.duration_minutes + ' min · ' + num(z.total_points) + ' points</div>' +
-      (z.status === 'graded' ? '<div>Score: <b>' + num(z.score) + '</b> / ' + num(z.total_points) + '</div>' : '') + '<div>' + (z.status === 'in_progress' ? '<a class="btn primary" href="#/quizzes/attempts/' + h(z.attempt_id) + '" data-go="/quizzes/attempts/' + h(z.attempt_id) + '">Continue</a>' : z.status === 'available' ? '<a class="btn primary" href="#/quizzes/' + h(z.id) + '" data-go="/quizzes/' + h(z.id) + '">View and start</a>' : '<a class="btn" href="#/quizzes/' + h(z.id) + '" data-go="/quizzes/' + h(z.id) + '">View</a>') + '</div></div></div>').join('') + '</div>' : '<div class="card">' + emptyState('No quizzes have been assigned to you.', 'quiz') + '</div>'));
+    const list = d.quizzes.slice().sort((a, b) => QT[a.status].order - QT[b.status].order);
+    const todo = list.filter(z => z.status === 'available' || z.status === 'in_progress').length;
+    const cards = list.map(z => {
+      const s = QT[z.status], to = z.status === 'in_progress' ? '/quizzes/attempts/' + h(z.attempt_id) : '/quizzes/' + h(z.id);
+      return `<li><article class="qx-card qx-tcard t-${s.tone}"><div class="row" style="gap:.75rem;flex-wrap:nowrap;align-items:flex-start;min-width:0"><span class="qx-ico" aria-hidden="true">${icon(s.ic)}</span>` +
+        `<div style="min-width:0;display:grid;gap:.375rem"><h2 style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(z.title)}</h2><p class="muted" style="margin:0">${h(z.phase)}</p>` +
+        `<div class="qx-meta"><span class="qx-chip">${s.label}</span><span class="muted row" style="gap:.25rem">${icon('clock')}${qDur(z.duration_minutes)}</span>` +
+        (z.status === 'graded' && z.score !== null ? `<span class="muted">Score: <b style="color:var(--foreground)">${num(z.score)}</b> / ${num(z.total_points)}</span>` : '') + `</div></div></div>` +
+        qBtn(to, (s.primary ? 'primary ' : '') + 'rx', s.action + icon('arrowRight')) + `</article></li>`;
+    }).join('');
+    const body = `<div class="qx-wrap qx-w5">${qHead('My quizzes', 'Quizzes assigned to you', list.length ? `<span class="qx-chip ${todo ? 't-amber' : 't-muted'}" style="padding:.25rem .75rem">${todo ? todo + ' to take' : 'Nothing to take right now'}</span>` : '')}` +
+      (list.length ? `<ul class="qx-list">${cards}</ul>` : `<div class="gempty" style="background:var(--card)">${icon('quiz')}<p style="margin:0;font-weight:500;color:var(--foreground)">No quizzes yet</p><p style="margin:0">Quizzes appear here once an instructor gives you access.</p></div>`) + '</div>';
+    return mount(shell('/quizzes', '', '', body, '', 'My quizzes'));
   }
-  mount(shell('/quizzes', 'Quizzes', d.can_create ? '<a class="btn primary" href="#/quizzes/create" data-go="/quizzes/create">' + icon('plus') + 'New quiz</a>' : '', '<div class="card">' + table([{ h: 'Quiz', f: z => '<a href="#/quizzes/' + h(z.id) + '" data-go="/quizzes/' + h(z.id) + '"><b>' + h(z.title) + '</b></a><div class="muted small">' + h(z.phase) + '</div>' }, { h: 'Questions', cls: 'center', f: z => z.question_count + ' · ' + num(z.total_points) + ' pts' }, { h: 'Time', cls: 'hide-sm', f: z => z.duration_minutes + ' min' }, { h: 'Access', cls: 'center', f: z => z.access_count },
-    { h: 'Attempts', cls: 'center', f: z => z.submitted_count + '/' + z.attempt_count }, { h: 'To review', cls: 'center', f: z => z.pending_review ? badge(z.pending_review, 'warn') : '—' }, { h: '', cls: 'right', f: z => '<a class="btn sm" href="#/quizzes/' + h(z.id) + '/edit" data-go="/quizzes/' + h(z.id) + '/edit">' + icon('edit') + 'Edit</a>' }], d.quizzes, 'No quizzes yet. Quizzes exist for Phase 1 and the Final Examination.') + '</div>'));
+  const rows = d.quizzes.map(z => `<tr><td style="padding-left:1.25rem;font-weight:500">${h(z.title)}</td><td class="muted">${h(z.phase)}</td><td style="font-variant-numeric:tabular-nums">${z.question_count} <span class="muted small">· ${num(z.total_points)} pts</span></td>` +
+    `<td style="font-variant-numeric:tabular-nums">${z.attempt_count}${z.pending_review ? ' ' + badge(z.pending_review + ' to review', 'warn') : ''}</td><td class="right" style="padding-right:1.25rem">${qBtn('/quizzes/' + h(z.id), 'sm rx', 'Manage')}</td></tr>`).join('');
+  const body = `<div class="qx-wrap qx-w7">${qHead('Quizzes', 'Phase 1 and Final Examination assessments', d.can_create ? qBtn('/quizzes/create', 'primary rx', icon('plus') + 'New quiz') : '')}` +
+    (d.quizzes.length ? `<div class="qx-card"><div style="overflow-x:auto"><table><thead><tr style="background:color-mix(in oklab,var(--muted) 60%,transparent)"><th style="padding-left:1.25rem;font-size:12px;color:var(--muted-foreground)">Quiz</th><th style="font-size:12px;color:var(--muted-foreground)">Phase</th><th style="font-size:12px;color:var(--muted-foreground)">Questions</th><th style="font-size:12px;color:var(--muted-foreground)">Attempts</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`
+      : `<div class="gempty" style="background:var(--card)">${icon('quiz')}<p style="margin:0">No quizzes have been created.</p></div>`) + '</div>';
+  mount(shell('/quizzes', '', '', body, '', 'Quizzes'));
 });
 
 /* ---------- quiz editor ---------- */
@@ -69,31 +141,46 @@ function syncQF() {
 function renderQuestions() {
   const box = $('#qlist'); if (!box) return;
   box.innerHTML = QF.questions.map((q, i) => {
-    const locked = QF.locked && q.id;
-    return '<div class="qeditor" data-i="' + i + '" data-qid="' + h(q.id || '') + '"><div class="row between" style="margin-bottom:10px"><b>Question ' + (i + 1) + '</b><span class="row"><button type="button" class="btn sm" data-act="qMove" data-i="' + i + '" data-d="-1"' + (locked || i === 0 ? ' disabled' : '') + ' aria-label="Move up">↑</button><button type="button" class="btn sm" data-act="qMove" data-i="' + i + '" data-d="1"' + (locked || i === QF.questions.length - 1 ? ' disabled' : '') + ' aria-label="Move down">↓</button><button type="button" class="btn sm danger" data-act="qRemove" data-i="' + i + '"' + (locked ? ' disabled' : '') + ' aria-label="Remove">' + icon('trash') + '</button></span></div>' +
-      '<div class="grid g2"><div class="field"><label>Type</label><select name="q-type" data-act="qType" data-i="' + i + '"><option value="multiple_choice"' + (q.type === 'multiple_choice' ? ' selected' : '') + '>Multiple choice (auto-graded)</option><option value="paragraph"' + (q.type === 'paragraph' ? ' selected' : '') + '>Paragraph (manual review)</option></select></div><div class="field"><label>Points</label><input type="number" name="q-points" min="0.01" step="0.01" value="' + h(q.points) + '"></div></div>' +
-      '<div class="field"><label>Prompt</label><textarea name="q-prompt" maxlength="10000">' + h(q.prompt) + '</textarea></div>' +
-      (q.type === 'multiple_choice' ? '<div class="field"><label>Answer options (select the correct one)</label>' + q.options.map((o, j) => '<div class="opt"><input type="radio" name="q-correct-' + i + '" value="' + j + '"' + (q.correct_option === j ? ' checked' : '') + ' aria-label="Correct answer"><input type="text" class="q-opt" maxlength="1000" value="' + h(o) + '" placeholder="Option ' + (j + 1) + '"><button type="button" class="btn sm ghost" data-act="optRemove" data-i="' + i + '" data-j="' + j + '"' + (q.options.length <= 2 ? ' disabled' : '') + ' aria-label="Remove option">' + icon('x') + '</button></div>').join('') + (q.options.length < 8 ? '<button type="button" class="btn sm" data-act="optAdd" data-i="' + i + '">' + icon('plus') + 'Add option</button>' : '') + '</div>' : '') + '</div>';
+    const locked = QF.locked && q.id, n = QF.questions.length;
+    return `<section class="qx-card qx-pad lg qx-q qeditor" data-i="${i}" data-qid="${h(q.id || '')}">` +
+      `<div class="qx-qh"><div class="row" style="gap:.625rem"><span class="qx-num">${i + 1}</span><h3>Question ${i + 1}</h3></div><span class="row" style="gap:.125rem">` +
+      `<button type="button" class="iconbtn qx-ib" data-act="qMove" data-i="${i}" data-d="-1" ${locked || i === 0 ? 'disabled' : ''} aria-label="Move question up">↑</button>` +
+      `<button type="button" class="iconbtn qx-ib" data-act="qMove" data-i="${i}" data-d="1" ${locked || i === n - 1 ? 'disabled' : ''} aria-label="Move question down">↓</button>` +
+      `<button type="button" class="iconbtn qx-ib" data-act="qRemove" data-i="${i}" ${locked || n === 1 ? 'disabled' : ''} aria-label="Remove question ${i + 1}">${icon('trash')}</button></span></div>` +
+      `<div class="qx-g2 pts"><div class="field"><label>Question type</label><select name="q-type" data-act="qType" data-i="${i}"><option value="multiple_choice"${q.type === 'multiple_choice' ? ' selected' : ''}>Multiple choice</option><option value="paragraph"${q.type === 'paragraph' ? ' selected' : ''}>Paragraph / free text</option></select></div>` +
+      `<div class="field"><label>Points</label><input type="number" name="q-points" min="0.01" max="99999.99" step="0.01" value="${h(q.points)}"></div></div>` +
+      `<div class="field"><label>Prompt</label><textarea name="q-prompt" rows="3" maxlength="10000">${h(q.prompt)}</textarea></div>` +
+      (q.type === 'multiple_choice' ? `<fieldset class="qx-opts"><legend>Answer options · select the correct answer</legend>` +
+        q.options.map((o, j) => `<div class="opt"><input type="radio" name="q-correct-${i}" value="${j}"${q.correct_option === j ? ' checked' : ''} aria-label="Mark option ${j + 1} as correct"><input type="text" class="q-opt" maxlength="1000" value="${h(o)}" placeholder="Option ${j + 1}" aria-label="Question ${i + 1} option ${j + 1}">` +
+          (q.options.length > 2 ? `<button type="button" class="iconbtn" data-act="optRemove" data-i="${i}" data-j="${j}" aria-label="Remove option ${j + 1}">${icon('trash')}</button>` : '') + `</div>`).join('') +
+        (q.options.length < 8 ? `<div><button type="button" class="btn sm rx" data-act="optAdd" data-i="${i}">${icon('plus')}Add option</button></div>` : '') + `</fieldset>` : '') + `</section>`;
   }).join('') || '<p class="muted">No questions yet.</p>';
 }
 function quizFormPage(d) {
   const z = d.quiz; QF = { questions: z ? z.questions.map(q => ({ id: q.id, type: q.type, prompt: q.prompt, points: q.points, options: q.options, correct_option: q.correct_option })) : [blankQ()], locked: d.has_attempts };
   const comps = (z && !d.components.some(c => c.key === z.grade_component_key) ? [{ key: z.grade_component_key, label: z.grade_component_key }] : []).concat(d.components);
-  return '<form data-form="quizSave" ' + (z ? 'data-id="' + h(z.id) + '"' : '') + ' novalidate>' + (d.has_attempts ? '<div class="alert warn">Attempts exist for this quiz. You can edit wording, points and answer keys (submitted attempts are re-graded automatically) and add new questions, but not remove or reorder existing ones.</div>' : '') +
-    '<div class="card" style="margin-bottom:16px"><div class="bd"><div class="grid g2">' + field('Phase', select('grade_component_key', comps.map(c => ({ value: c.key, label: c.label })), z ? z.grade_component_key : (comps[0] || {}).key, { disabled: d.has_attempts })) + field('Time limit (minutes)', input('duration_minutes', { type: 'number', value: z ? z.duration_minutes : 30, min: 1, maxn: 65535, required: true })) + '</div>' +
-    field('Title', input('title', { value: z && z.title, required: true, max: 150 })) + field('Instructions', '<textarea name="instructions" maxlength="10000" required>' + h(z && z.instructions) + '</textarea>') + '</div></div><div id="qlist"></div>' +
-    '<div class="row" style="margin:8px 0 18px"><button type="button" class="btn" data-act="qAdd" data-t="multiple_choice">' + icon('plus') + 'Multiple choice</button><button type="button" class="btn" data-act="qAdd" data-t="paragraph">' + icon('plus') + 'Paragraph</button></div><div class="row"><button class="btn primary" type="submit">' + (z ? 'Save quiz' : 'Create quiz') + '</button><a class="btn" href="#/quizzes" data-go="/quizzes">Cancel</a></div></form>';
+  return `<div class="qx-wrap qx-w4">${qHead(z ? 'Edit quiz' : 'Create quiz', 'Quizzes are available only for Phase 1 and the Final Examination.', qBtn(z ? '/quizzes/' + h(z.id) : '/quizzes', 'rx', icon('arrowLeft') + 'Cancel'))}` +
+    (d.has_attempts ? `<p class="qx-note">Changes will re-score submitted attempts using their saved answers. Added questions count as unanswered for submitted attempts. Existing questions cannot be removed or reordered, and the quiz phase is locked, but existing questions can still be edited.</p>` : '') +
+    `<form data-form="quizSave" ${z ? `data-id="${h(z.id)}"` : ''} class="qx-wrap" novalidate>` +
+    `<section class="qx-card qx-pad lg qx-g2">` +
+      field('Quiz phase', select('grade_component_key', comps.map(c => ({ value: c.key, label: c.label })), z ? z.grade_component_key : (comps[0] || {}).key, { disabled: d.has_attempts })) +
+      field('Time limit (minutes)', input('duration_minutes', { type: 'number', value: z ? z.duration_minutes : 30, min: 1, maxn: 65535, required: true })) +
+      `<div class="span2">${field('Quiz title', input('title', { value: z && z.title, required: true, max: 150 }))}</div>` +
+      `<div class="span2">${field('Instructions', `<textarea name="instructions" rows="4" maxlength="10000" required>${h(z && z.instructions)}</textarea>`)}</div></section>` +
+    `<div class="qx-secth"><h2>Questions</h2></div><div id="qlist" class="qx-wrap"></div>` +
+    `<div class="qx-add"><span class="muted" style="font-size:14px">Add another question</span><div class="row" style="gap:.5rem"><button type="button" class="btn rx" data-act="qAdd" data-t="multiple_choice">${icon('plus')}Multiple choice</button><button type="button" class="btn rx" data-act="qAdd" data-t="paragraph">${icon('plus')}Paragraph</button></div></div>` +
+    `<div class="qx-foot"><button class="btn primary rx" type="submit">${z ? 'Save quiz' : 'Create quiz'}</button>${qBtn(z ? '/quizzes/' + h(z.id) : '/quizzes', 'rx', 'Cancel')}</div></form></div>`;
 }
 route('/quizzes/create', async (p, q, id) => {
   loadingShell('/quizzes', 'New quiz'); const d = await A('quizzes.form', {}); if (!current(id)) return;
-  if (!d.components.length) return mount(shell('/quizzes', 'New quiz', '', '<div class="alert info">Every quiz-eligible phase already has a quiz.</div>'));
-  mount(shell('/quizzes', 'New quiz', '', quizFormPage(d))); renderQuestions();
+  if (!d.components.length) return mount(shell('/quizzes', '', '', `<div class="qx-wrap qx-w4">${qHead('Create quiz', 'Quizzes are available only for Phase 1 and the Final Examination.', qBtn('/quizzes', 'rx', icon('arrowLeft') + 'Back'))}<p class="qx-note">A quiz already exists for each eligible phase.</p></div>`, '', 'Create quiz'));
+  mount(shell('/quizzes', '', '', quizFormPage(d), '', 'Create quiz')); renderQuestions();
 });
 route('/quizzes/:id/edit', async (p, q, id) => {
   loadingShell('/quizzes', 'Edit quiz'); const d = await A('quizzes.form', { id: p.id }); if (!current(id)) return;
-  mount(shell('/quizzes', 'Edit quiz', '', quizFormPage(d))); renderQuestions();
+  mount(shell('/quizzes', '', '', quizFormPage(d), '', 'Edit quiz')); renderQuestions();
 });
-Actions.qAdd = el => { syncQF(); QF.questions.push(blankQ(el.dataset.t)); renderQuestions(); };
+Actions.qAdd = el => { syncQF(); QF.questions.push(blankQ(el.dataset.t)); renderQuestions(); const all = $$('.qeditor'); if (all.length) all[all.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' }); };
 Actions.qRemove = el => { syncQF(); QF.questions.splice(+el.dataset.i, 1); renderQuestions(); };
 Actions.qMove = el => { syncQF(); const i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= QF.questions.length) return; const t = QF.questions[i]; QF.questions[i] = QF.questions[j]; QF.questions[j] = t; renderQuestions(); };
 Actions.optAdd = el => { syncQF(); QF.questions[+el.dataset.i].options.push(''); renderQuestions(); };
@@ -107,50 +194,88 @@ Forms.quizSave = async f => {
   await submitForm(f, edit ? 'quizzes.update' : 'quizzes.create', payload, d => go('/quizzes/' + d.id));
 };
 
-/* ---------- quiz detail ---------- */
+/* ---------- review ---------- */
 route('/quizzes/attempts/:id', async (p, q, id) => renderAttempt(p.id, id));
 route('/quizzes/:qid/review/:aid', async (p, q, id) => {
   loadingShell('/quizzes', 'Review attempt');
   const d = await A('quizzes.reviewGet', { quiz_id: p.qid, attempt_id: p.aid }); if (!current(id)) return;
-  const a = d.attempt, editable = a.status === 'submitted';
-  const body = (a.status === 'in_progress' ? '<div class="alert warn">This attempt has not been submitted yet.</div>' : '') +
-    '<div class="card"><div class="bd">' + d.questions.map((qq, i) => '<div class="qa"><div class="row between"><b>' + (i + 1) + '. ' + h(qq.prompt).replace(/\n/g, '<br>') + '</b><span class="muted small nowrap">' + num(qq.points) + ' pts</span></div>' +
-      (qq.type === 'multiple_choice' ? qq.options.map((o, j) => '<div class="choice ' + (j === qq.correct_option ? 'right' : (j === qq.selected_option ? 'wrong' : '')) + '">' + h(o) + (j === qq.selected_option ? ' <span class="small muted">(trainee’s answer)</span>' : '') + (j === qq.correct_option ? ' <span class="small">✔ correct</span>' : '') + '</div>').join('') + '<div class="small muted">Score: ' + num(qq.auto_score) + ' / ' + num(qq.points) + (qq.selected_option === null ? ' · no answer' : '') + '</div>'
-        : '<div class="memo" style="margin:8px 0;white-space:pre-wrap">' + (qq.answer_text ? h(qq.answer_text) : '<span class="muted">No answer given.</span>') + '</div>' + (editable ? '<div class="field" style="max-width:220px"><label>Score (0 – ' + num(qq.points) + ')</label><input type="number" data-score data-qid="' + h(qq.id) + '" min="0" max="' + h(qq.points) + '" step="0.01" value="0"></div>' : '<div class="small muted">Score: ' + num(qq.manual_score) + ' / ' + num(qq.points) + '</div>')) + '</div>').join('') + '</div></div>' +
-    (editable ? '<div class="row" style="margin-top:16px"><button class="btn primary" data-act="reviewSave" data-q="' + h(d.quiz.id) + '" data-a="' + h(a.id) + '">Save review and post grade</button></div>' : '<div class="alert ok" style="margin-top:16px">Reviewed. Final score <b>' + num(a.final_score) + '</b> / ' + num(d.quiz.total_points) + ' (auto ' + num(a.auto_score) + ' + manual ' + num(a.manual_score) + ').</div>');
-  mount(shell('/quizzes', d.trainee.name, '<a class="btn" href="#/quizzes/' + h(d.quiz.id) + '" data-go="/quizzes/' + h(d.quiz.id) + '">← Quiz</a>', body, h(d.quiz.title) + ' · @' + h(d.trainee.username) + ' · submitted ' + h(fmtDT(a.submitted_at))));
+  const a = d.attempt, editable = a.status === 'submitted', total = d.quiz.total_points;
+  const mc = d.questions.filter(x => x.type === 'multiple_choice'), para = d.questions.filter(x => x.type === 'paragraph');
+  const mcHtml = mc.map(qq => `<section class="qx-card qx-pad"><div class="qx-qtop"><h2>${qq.position}. ${h(qq.prompt)}</h2><span class="muted" style="font-variant-numeric:tabular-nums">${num(qq.auto_score || 0)} / ${num(qq.points)}</span></div><ul class="qx-ans">` +
+    qq.options.map((o, j) => `<li class="${j === qq.correct_option ? 'right' : j === qq.selected_option ? 'wrong' : ''}">${h(o)}${j === qq.selected_option ? ' · trainee answer' : ''}${j === qq.correct_option ? ' · correct answer' : ''}</li>`).join('') + `</ul></section>`).join('');
+  const paraHtml = para.map(qq => `<section class="qx-card qx-pad"><div class="qx-qtop"><h2>${qq.position}. ${h(qq.prompt)}</h2><span class="muted">Up to ${num(qq.points)} points</span></div>` +
+    `<p class="qx-resp">${qq.answer_text ? h(qq.answer_text) : 'No response provided.'}</p>` +
+    (editable ? `<div class="field" style="max-width:20rem"><label for="ms-${h(qq.id)}">Instructor score</label><input type="number" id="ms-${h(qq.id)}" data-score data-qid="${h(qq.id)}" min="0" max="${h(qq.points)}" step="0.01" value="" required></div>`
+      : `<p class="muted" style="margin:0;font-size:14px">Instructor score: <b style="color:var(--foreground)">${num(qq.manual_score)}</b> / ${num(qq.points)}</p>`) + `</section>`).join('');
+  const action = !editable ? '' : para.length
+    ? `<div class="qx-foot" style="justify-content:space-between"><p class="muted" style="margin:0;font-size:14px">Completing this review records the grade automatically.</p><button class="btn primary rx" data-act="reviewSave" data-q="${h(d.quiz.id)}" data-a="${h(a.id)}">Complete review and record grade</button></div>`
+    : `<div class="qx-card qx-pad qx-foot" style="justify-content:space-between"><div><p style="margin:0;font-weight:500">No paragraph answers to grade</p><p class="muted" style="margin:0;font-size:14px">Confirm this review to record the automatic score.</p></div><button class="btn primary rx" data-act="reviewSave" data-q="${h(d.quiz.id)}" data-a="${h(a.id)}">Confirm review and record grade</button></div>`;
+  const body = `<div class="qx-wrap qx-w5">${qHead('Review attempt', `${h(d.quiz.title)} · ${h(d.trainee.name)} (@${h(d.trainee.username)})`, qBtn('/quizzes/' + h(d.quiz.id), 'rx', icon('arrowLeft') + 'Back to quiz'))}` +
+    (a.status === 'in_progress' ? '<div class="alert warn" style="margin:0">This attempt has not been submitted yet.</div>' : '') +
+    `<section class="qx-card qx-pad qx-sum"><div><p class="muted">Submitted</p><p>${h(fmtDT(a.submitted_at))}</p></div><div><p class="muted">Automatic score</p><b>${num(a.auto_score)} / ${num(total)}</b></div>` +
+    (a.reviewed ? `<div><p class="muted">Recorded grade</p><b>${num(a.final_score)} / ${num(total)}</b></div>` : '') + `</section>` + mcHtml + paraHtml + action + '</div>';
+  mount(shell('/quizzes', '', '', body, '', [{ t: 'Quizzes', to: '/quizzes' }, { t: 'Review attempt', to: State.path }]));
 });
 Actions.reviewSave = async el => {
-  const answers = $$('[data-score]').map(i => ({ question_id: i.dataset.qid, manual_score: i.value }));
+  const inputs = $$('[data-score]');
+  for (const i of inputs) {
+    if (i.value === '') { i.focus(); return toast('Enter a score for every paragraph answer.', 'bad'); }
+    if (Number(i.value) < 0 || Number(i.value) > Number(i.max)) { i.focus(); return toast('A score is outside its point range.', 'bad'); }
+  }
+  const answers = inputs.map(i => ({ question_id: i.dataset.qid, manual_score: i.value }));
   const ok = await confirmDialog({ title: 'Post grade?', message: 'The total is written to the trainee’s gradebook. A reviewed attempt cannot be reviewed again.', confirmText: 'Save review' }); if (!ok) return;
   await busy(el, async () => { await A('quizzes.reviewSave', { quiz_id: el.dataset.q, attempt_id: el.dataset.a, answers }); toast(A.lastMessage, 'ok'); go('/quizzes/' + el.dataset.q); });
 };
 
+/* ---------- quiz detail (manager) / take page (trainee) ---------- */
+const TAKE_RULES = [
+  ['clock', 'The timer starts right away', 'It keeps running even if you refresh or close the page. When time runs out, your answers are submitted automatically.'],
+  ['save', 'Answers save as you work', 'You answer one question at a time and can go back to change earlier answers. Submission is final.'],
+  ['qzExpand', 'Fullscreen is required', 'Fullscreen starts when you press Start. If you leave it, the questions are hidden until you return. Some phones do not support fullscreen, and you can still take the quiz there.'],
+  ['eye', 'Page activity is recorded', 'Leaving the page or fullscreen is logged for your instructor. It is only a record of activity, and notifications or screen locks can cause it too.']
+];
 route('/quizzes/:id', async (p, q, id) => {
   loadingShell('/quizzes', 'Quiz');
   const d = await A('quizzes.show', { id: p.id }); if (!current(id)) return;
   if (d.redirect) return go('/quizzes/attempts/' + d.redirect.id);
-  if (d.status) { // trainee view
-    const z = d.quiz;
-    return mount(shell('/quizzes', z.title, '<a class="btn" href="#/quizzes" data-go="/quizzes">← My quizzes</a>', '<div class="card" style="max-width:720px"><div class="bd stack"><div class="muted">' + h(z.phase) + ' · ' + z.duration_minutes + ' minutes · one attempt only</div><div style="white-space:pre-wrap">' + h(z.instructions) + '</div>' +
-      (d.status === 'available' ? '<div class="alert warn">The timer starts when you press Start and keeps running if you leave. You cannot retake the quiz.</div><button class="btn primary" data-act="quizStart" data-id="' + h(z.id) + '">Start quiz</button>' : '<div class="alert ok">You have already completed this quiz. ' + (d.status === 'graded' ? 'It has been graded — see your Grades page.' : 'It is waiting for review.') + '</div>') + '</div></div>'));
+  if (d.status) { // trainee take page
+    const z = d.quiz, done = d.status !== 'available', graded = d.status === 'graded';
+    const body = `<div class="qx-wrap qx-w3"><header class="ghead" style="align-items:flex-start;justify-content:flex-start;flex-wrap:nowrap"><span class="qx-hico" aria-hidden="true">${icon('clipboardCheck')}</span><div style="min-width:0;display:grid;gap:.5rem">` +
+      `<p class="muted" style="margin:0;font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase">${h(z.phase)}</p><h1>${h(z.title)}</h1>` +
+      `<span class="qx-chip" style="color:var(--foreground);background:color-mix(in oklab,var(--background) 70%,transparent);padding:.25rem .75rem;gap:.375rem;width:fit-content">${icon('clock').replace('<svg ', '<svg style="width:.875rem;height:.875rem" ')}${qDur(z.duration_minutes)} from the time you start</span></div></header>` +
+      `<section class="qx-card"><div class="qx-pad lg" style="display:grid;gap:.5rem"><h2 style="font-weight:600">Instructions</h2><p class="muted" style="margin:0;white-space:pre-wrap;line-height:1.6">${h(z.instructions)}</p></div>` +
+      `<div class="qx-pad lg" style="border-top:1px solid var(--border);background:color-mix(in oklab,var(--muted) 30%,transparent)"><h2 style="font-weight:600;margin-bottom:1rem">Before you start</h2><ul class="qx-rules">` +
+      TAKE_RULES.map(r => `<li><span class="ri" aria-hidden="true">${icon(r[0])}</span><div><b>${r[1]}</b><span>${r[2]}</span></div></li>`).join('') + `</ul></div>` +
+      `<div class="qx-pad lg" style="border-top:1px solid var(--border)">` + (!done
+        ? `<div class="row" style="gap:.75rem"><button class="btn primary rx" style="height:2.5rem;padding:0 1.25rem" data-act="quizStart" data-id="${h(z.id)}">${icon('play')}Start quiz</button><span class="muted small">You only get one attempt.</span></div>`
+        : `<div class="qx-state" role="status"><span class="qx-ico t-${graded ? 'emerald' : 'amber'}" aria-hidden="true">${icon(graded ? 'clipboardCheck' : 'hourglass')}</span><div><p style="font-weight:500">${graded ? 'Quiz graded' : 'Submitted, awaiting review'}</p><p class="muted" style="margin-top:.125rem">${graded ? 'Your grade is available on the Grades page.' : 'Your instructor has not finished reviewing it yet.'}</p></div></div>`) + `</div></section>` +
+      (!done ? `<p class="muted small" style="margin:0;padding:0 .25rem">Tip: close other tabs and silence notifications first, so your page stays active during the quiz.</p>` : '') +
+      `<div>${qBtn('/quizzes', 'ghost rx', icon('arrowLeft') + 'Back to my quizzes')}</div></div>`;
+    return mount(shell('/quizzes', '', '', body, '', z.title));
   }
-  const z = d.quiz;
-  const body = '<div class="grid g3"><div class="card stat"><div class="v">' + d.questions.length + '</div><div class="l">Questions</div></div><div class="card stat"><div class="v">' + num(z.total_points) + '</div><div class="l">Total points</div></div><div class="card stat"><div class="v">' + z.duration_minutes + '</div><div class="l">Minutes</div></div></div>' +
-    '<div class="card" style="margin-top:16px"><div class="hd"><h2>Instructions</h2></div><div class="bd" style="white-space:pre-wrap">' + h(z.instructions) + '</div></div>' +
-    '<div class="card" style="margin-top:16px"><div class="hd"><h2>Questions</h2></div><div class="bd">' + d.questions.map((qq, i) => '<div class="qa"><div class="row between"><b>' + (i + 1) + '. ' + h(qq.prompt) + '</b><span class="muted small nowrap">' + num(qq.points) + ' pts · ' + (qq.type === 'paragraph' ? 'paragraph' : 'multiple choice') + '</span></div>' + (qq.options ? '<ol type="A" style="margin:8px 0 0">' + qq.options.map((o, j) => '<li' + (j === qq.correct_option ? ' style="font-weight:700;color:var(--accent-ink)"' : '') + '>' + h(o) + (j === qq.correct_option ? ' ✔' : '') + '</li>').join('') + '</ol>' : '') + '</div>').join('') + '</div></div>' +
-    '<div class="grid g2" style="margin-top:16px"><div class="card"><div class="hd"><h2>Access</h2></div><div class="bd" style="border-bottom:1px solid var(--border)"><div class="row"><select id="grant-user" style="flex:1;min-width:160px"><option value="">Grant access to…</option>' + d.available_trainees.map(t => '<option value="' + h(t.id) + '">' + h(t.name) + ' (@' + h(t.username) + ')</option>').join('') + '</select><button class="btn primary" data-act="quizGrant" data-id="' + h(z.id) + '">Grant</button></div></div>' +
-    table([{ h: 'Trainee', f: a => '<b>' + h(a.name) + '</b>' }, { h: 'Status', f: a => a.revoked_at ? badge('Revoked', 'bad') : badge('Granted', 'ok') }, { h: '', cls: 'right', f: a => a.revoked_at ? '' : '<button class="btn sm danger" data-act="quizRevoke" data-id="' + h(z.id) + '" data-tid="' + h(a.trainee_id) + '">Revoke</button>' }], d.accesses, 'Nobody has access yet.') + '</div>' +
-    '<div class="card"><div class="hd"><h2>Attempts</h2></div>' + table([{ h: 'Trainee', f: a => '<b>' + h(a.name) + '</b>' }, { h: 'Status', f: a => qStatus(a.status) }, { h: 'Score', cls: 'nowrap', f: a => a.final_score !== null ? '<b>' + num(a.final_score) + '</b>' : (a.auto_score !== null ? '<span class="muted">auto ' + num(a.auto_score) + '</span>' : '—') },
-      { h: '', cls: 'right nowrap', f: a => (a.submitted_at ? '<a class="btn sm" href="#/quizzes/' + h(z.id) + '/review/' + h(a.id) + '" data-go="/quizzes/' + h(z.id) + '/review/' + h(a.id) + '">' + (a.status === 'graded' ? 'View' : 'Review') + '</a> ' : '') + (d.can.reset ? '<button class="btn sm danger" data-act="quizReset" data-q="' + h(z.id) + '" data-a="' + h(a.id) + '">Reset</button>' : '') }], d.attempts, 'No attempts yet.') + '</div></div>';
-  mount(shell('/quizzes', z.title, '<a class="btn" href="#/quizzes/' + h(z.id) + '/edit" data-go="/quizzes/' + h(z.id) + '/edit">' + icon('edit') + 'Edit quiz</a>', body, h(z.phase)));
+  const z = d.quiz, active = d.accesses.filter(a => !a.revoked_at);
+  const accessRows = active.length ? active.map(a => `<div class="qx-row"><div><div style="font-size:14px;font-weight:500">${h(a.name)}</div><div class="muted small">@${h(a.username)}</div></div><button class="btn sm rx" data-act="quizRevoke" data-id="${h(z.id)}" data-tid="${h(a.trainee_id)}">Revoke</button></div>`).join('')
+    : '<p class="muted center" style="margin:0;padding:2rem 1.25rem;font-size:14px">No trainees currently have access.</p>';
+  const grant = d.available_trainees.length ? `<div class="qx-grant"><div class="field"><label for="grant-user">Grant access to a trainee</label><select id="grant-user"><option value="">Select a trainee</option>${d.available_trainees.map(t => `<option value="${h(t.id)}">${h(t.name)} (@${h(t.username)})</option>`).join('')}</select></div><button class="btn primary rx" data-act="quizGrant" data-id="${h(z.id)}">${icon('userPlus')}Grant access</button></div>` : '';
+  const th = t => `<th style="font-size:12px;color:var(--muted-foreground)">${t}</th>`;
+  const attemptRows = d.attempts.map(a => `<tr><td style="padding-left:1.25rem"><div style="font-weight:500">${h(a.name)}</div><div class="muted small">@${h(a.username)}</div></td><td class="muted nowrap">${h(fmtDT(a.started_at))}</td><td>${qStatus(a.status)}</td>` +
+    `<td style="font-variant-numeric:tabular-nums">${a.final_score !== null ? '<b>' + num(a.final_score) + '</b>' : a.auto_score !== null ? num(a.auto_score) : '—'} <span class="muted small">/ ${num(z.total_points)}</span></td>` +
+    `<td class="right nowrap" style="padding-right:1.25rem"><span class="row" style="justify-content:flex-end;gap:.5rem">${a.submitted_at ? qBtn('/quizzes/' + h(z.id) + '/review/' + h(a.id), 'sm rx', a.status === 'graded' ? 'View review' : 'Review') : ''}${d.can.reset ? `<button class="btn sm rx" data-act="quizReset" data-q="${h(z.id)}" data-a="${h(a.id)}">${icon('refresh')}Reset</button>` : ''}</span></td></tr>`).join('');
+  const body = `<div class="qx-wrap qx-w7">${qHead(z.title, `${h(z.phase)} · ${z.duration_minutes} minutes · ${d.questions.length} questions`, qBtn('/quizzes/' + h(z.id) + '/edit', 'rx', icon('edit') + 'Edit quiz') + qBtn('/quizzes', 'ghost rx', icon('arrowLeft') + 'Back to quizzes'), 'quiz')}` +
+    (d.attempts.length ? '<p class="qx-note">Quiz edits remain available. Changes re-score submitted attempts; newly added questions count as unanswered for those attempts.</p>' : '') +
+    `<section class="qx-card"><div class="qx-sh"><div class="row" style="gap:.5rem">${icon('users')}<h2>Trainee access</h2><span class="muted" style="font-size:14px">(${active.length} assigned)</span></div></div>${grant}${accessRows}</section>` +
+    `<section class="qx-card"><div class="qx-sh"><h2>Attempts and review</h2><span class="muted" style="font-size:14px">${d.attempts.length} started</span></div>` +
+    (d.attempts.length ? `<div style="overflow-x:auto"><table><thead><tr style="background:color-mix(in oklab,var(--muted) 60%,transparent)"><th style="padding-left:1.25rem;font-size:12px;color:var(--muted-foreground)">Trainee</th>${th('Started')}${th('Status')}${th('Score')}<th></th></tr></thead><tbody>${attemptRows}</tbody></table></div>`
+      : '<p class="muted center" style="margin:0;padding:2rem 1.25rem;font-size:14px">No trainee has started this quiz.</p>') + `</section></div>`;
+  mount(shell('/quizzes', '', '', body, '', z.title));
 });
 Actions.quizGrant = async el => { const t = $('#grant-user').value; if (!t) return toast('Choose a trainee first.', 'bad'); await busy(el, async () => { await A('quizzes.grant', { id: el.dataset.id, trainee_id: t }); toast(A.lastMessage, 'ok'); go(State.path); }); };
 Actions.quizRevoke = async el => { const ok = await confirmDialog({ title: 'Revoke access?', message: 'The trainee can no longer open this quiz.', confirmText: 'Revoke', danger: true }); if (!ok) return; await busy(el, async () => { await A('quizzes.revoke', { id: el.dataset.id, trainee_id: el.dataset.tid }); toast(A.lastMessage, 'ok'); go(State.path); }); };
-Actions.quizReset = async el => { const ok = await confirmDialog({ title: 'Reset this attempt?', message: 'Answers and scores are deleted, any grade posted from this attempt is cleared, and the trainee gets a fresh attempt. This is logged.', confirmText: 'Reset attempt', danger: true }); if (!ok) return; await busy(el, async () => { await A('quizzes.resetAttempt', { quiz_id: el.dataset.q, attempt_id: el.dataset.a }); toast(A.lastMessage, 'ok'); go(State.path); }); };
-Actions.quizStart = async el => { const ok = await confirmDialog({ title: 'Start the quiz now?', message: 'The timer begins immediately. You only get one attempt.', confirmText: 'Start' }); if (!ok) return;
-  try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* not allowed */ } // inside the click, so the browser allows it
-  await busy(el, async () => { const d = await A('quizzes.start', { id: el.dataset.id }); go('/quizzes/attempts/' + d.id); }); };
+Actions.quizReset = async el => { const ok = await confirmDialog({ title: 'Reset this attempt?', message: 'This deletes the trainee’s answers and attempt so they can retake the quiz. Any grade posted from it is cleared (the change stays in grade history). This cannot be undone.', confirmText: 'Reset attempt', danger: true }); if (!ok) return; await busy(el, async () => { await A('quizzes.resetAttempt', { quiz_id: el.dataset.q, attempt_id: el.dataset.a }); toast(A.lastMessage, 'ok'); go(State.path); }); };
+Actions.quizStart = async el => {
+  try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* not allowed */ } // runs inside the click so the browser allows it
+  await busy(el, async () => { const d = await A('quizzes.start', { id: el.dataset.id }); go('/quizzes/attempts/' + d.id); });
+};
 
 /* ---------- taking a quiz (layout ported from attempt.tsx: no sidebar, one question at a time) ---------- */
 Object.assign(ICONS, {
