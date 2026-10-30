@@ -286,7 +286,7 @@ function navItems() {
     { label: 'Administration', items: [
       can('announcements.manage') && { t: 'Announcements', to: '/announcements', i: 'announce' }, can('certificates.manage') && { t: 'Certificates', to: '/certificates', i: 'cert' },
       can('chain.manage') && { t: 'Chain of Command', to: '/chain-of-command/manage', i: 'chain' }, can('settings.manage') && { t: 'Recruitment', to: '/intake', i: 'recruit' },
-      can('users.manage') && { t: 'Users', to: '/users', i: 'users' }] }
+      can('users.manage') && { t: 'Users', to: '/users', i: 'users' }, can('logs.view') && { t: 'Audit log', to: '/audit-logs', i: 'clipboard' }] }
   ].map(s => ({ label: s.label, items: s.items.filter(Boolean) })).filter(s => s.items.length);
 }
 function isNavActive(active, to) { return active === to || (to !== '/dashboard' && active.indexOf(to) === 0); }

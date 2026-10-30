@@ -57,7 +57,14 @@
 @media(min-width:640px){.lp-h2{font-size:30px;line-height:36px}}
 /* about */
 .lp-about{display:grid;align-items:center;gap:2rem}
-.lp-slides{position:relative;height:340px;overflow:hidden;border-radius:1.5rem;border:1px solid var(--border);background:var(--muted)}.lp-slides>img{width:100%;height:100%;object-fit:cover}
+.lp-slides{position:relative;height:340px;overflow:hidden;border-radius:1.5rem;border:1px solid var(--border);background:var(--muted)}.lp-slides>img.lp-sl{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.1);transition:opacity 1.2s ease,transform 5s ease-out;will-change:opacity,transform}
+.lp-slides>img.lp-sl.on{opacity:1;transform:scale(1)}
+.lp-slides::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgb(0 0 0/.25),transparent 40%)}
+.lp-cap{z-index:2}
+.lp-dots{z-index:2}
+.lp-dots button{transition:width .35s ease,background-color .35s ease,border-color .35s ease}
+.lp-dots button.on{width:1.25rem}
+@media(prefers-reduced-motion:reduce){.lp-slides>img.lp-sl{transition:opacity .01s;transform:none}}
 .lp-cap{position:absolute;left:.75rem;right:.75rem;bottom:.75rem;display:flex;align-items:center;gap:.5rem;border-radius:.75rem;border:1px solid var(--border);padding:.625rem .875rem;font-size:12px;line-height:16px;background:color-mix(in oklab,var(--background) 80%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .lp-cap svg{width:1rem;height:1rem;color:var(--sky-600)}:root[data-theme="dark"] .lp-cap svg{color:var(--sky-400)}
 .lp-arrow{position:absolute;top:50%;transform:translateY(-50%);width:2rem;height:2rem;background:color-mix(in oklab,var(--background) 80%,transparent)}.lp-arrow.l{left:.75rem}.lp-arrow.r{right:.75rem}
@@ -92,7 +99,7 @@
 /* announcement dialog */
 .modal.lp-dlg{max-width:36rem;border-radius:1rem;max-height:85vh;gap:1rem;text-align:left}.lp-dlg .lp-x{position:absolute;top:1rem;right:1rem;width:2rem;height:2rem;opacity:.7}.lp-dlg .lp-x:hover{opacity:1}
 .lp-dlg h3{margin:.75rem 0 0;padding-right:1.5rem;font-size:18px}.lp-dlg dl{display:grid;grid-template-columns:4rem 1fr;gap:.375rem 1rem;font-size:14px;line-height:20px;margin:0}.lp-dlg dd{margin:0;font-weight:500;overflow-wrap:anywhere}
-.lp-dlg hr{border:0;border-top:1px solid var(--border);margin:0}.lp-dlg .bd{font-size:14px;line-height:1.625;overflow-wrap:anywhere;white-space:pre-line}.lp-dlg .sig{font-size:14px;line-height:20px;font-weight:500;overflow-wrap:anywhere}.lp-dlg .pub{font-size:12px;line-height:16px;color:var(--muted-foreground)}
+.lp-dlg hr{border:0;border-top:1px solid var(--border);margin:0}.lp-dlg .bd{font-size:14px;line-height:1.625;overflow-wrap:anywhere;white-space:pre-line}.lp-dlg .sig{font-size:14px;line-height:20px;font-weight:500;overflow-wrap:anywhere;white-space:pre-line}.lp-dlg .pub{font-size:12px;line-height:16px;color:var(--muted-foreground)}
 /* CTA */
 .lp-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2rem;border-radius:1.5rem;border:1px solid var(--border);background:color-mix(in oklab,var(--sky-500) 10%,transparent);padding:1.5rem}
 .lp-cta .tx{max-width:36rem;display:flex;flex-direction:column;gap:.75rem}.lp-cta p{font-size:14px;line-height:1.625;color:var(--muted-foreground)}
@@ -163,7 +170,13 @@ const LP = {
   ],
   nav: [['About AMS', 'about'], ['Programs', 'programs'], ['Announcements', 'announcements']]
 };
-LP.slides = [LP.hero]; // add more image URLs here for the About slideshow
+LP.slides = [
+  LP.hero,
+  'https://www.image2url.com/r2/default/images/1793329416424-ae18aa83-ee67-444b-a22d-e91e93116c28.jpg',
+  'https://www.image2url.com/r2/default/images/1793329463865-9f97dd22-69b0-462f-8bba-39cbe7ebcaea.jpg',
+  'https://www.image2url.com/r2/default/images/1793329515511-787c37d7-486e-4dec-9ed1-2ea1ff02c39d.png',
+  'https://www.image2url.com/r2/default/images/1793329547393-5fe795b2-8651-46dd-819c-6f81da7187f5.png'
+];
 
 function lpAnnInner(anns) {
   return '<div class="lp-ahead"><div class="t">' + lpChip('announce', 'amber') + '<h2 class="lp-h2">Announcements</h2></div>' +
@@ -184,7 +197,7 @@ function lpAnnCard(a, i) {
 }
 function lpSlide(n) {
   const len = LP.slides.length; LP.slide = (n + len) % len;
-  const im = $('#lp-slide'); if (im) im.src = LP.slides[LP.slide];
+  document.querySelectorAll('.lp-sl').forEach((im, k) => im.classList.toggle('on', k === LP.slide));
   document.querySelectorAll('.lp-dots button').forEach((b, k) => b.classList.toggle('on', k === LP.slide));
 }
 Actions.lpMenu = el => { const d = $('#lp-drawer'); if (!d) return; const open = d.classList.toggle('hidden') === false; el.innerHTML = icon(open ? 'x' : 'menu'); };
@@ -229,10 +242,10 @@ route('/', async (p, q, id) => {
 
   const stats = '<section aria-label="School at a glance" class="lp-stats">' + LP.stats.map(s => '<div class="lp-card">' + lpChip(s.i, s.t) + '<div class="v">' + h(s.v) + '</div><div class="l">' + h(s.l) + '</div></div>').join('') + '</section>';
 
-  const about = '<section id="about" class="lp-sec"><div class="lp-about"><div class="lp-slides"><img id="lp-slide" src="' + LP.slides[0] + '" alt="AMS training">' +
+  const about = '<section id="about" class="lp-sec"><div class="lp-about"><div class="lp-slides">' +
+    LP.slides.map((s, k) => '<img class="lp-sl' + (k === 0 ? ' on' : '') + '" src="' + h(s) + '" alt="AMS training" ' + (k === 0 ? '' : 'loading="eager" ') + 'draggable="false">').join('') +
     '<div class="lp-cap">' + icon('stethoscope') + 'Army Medical Corps, Philippine Army</div>' +
-    (multi ? '<button type="button" class="lp-btn out ghost lp-arrow l" data-act="lpSlide" data-d="-1" aria-label="Previous slide">' + icon('chevronLeft') + '</button><button type="button" class="lp-btn out ghost lp-arrow r" data-act="lpSlide" data-d="1" aria-label="Next slide">' + icon('chevronRight') + '</button>' +
-      '<div class="lp-dots">' + LP.slides.map((_, k) => '<button type="button" data-act="lpDot" data-i="' + k + '" aria-label="Slide ' + (k + 1) + '" class="' + (k === 0 ? 'on' : '') + '"></button>').join('') + '</div>' : '') + '</div>' +
+    (multi ? '<div class="lp-dots">' + LP.slides.map((_, k) => '<button type="button" data-act="lpDot" data-i="' + k + '" aria-label="Slide ' + (k + 1) + '" class="' + (k === 0 ? 'on' : '') + '"></button>').join('') + '</div>' : '') + '</div>' +
     '<div>' + lpHeading('Forged in service, built for medicine', 'The Army Medical School operates under the Army Medical Corps of the Philippine Army, dedicated to producing highly capable medical personnel who embody the values of discipline, integrity, and service.') +
     '<ul class="lp-pts">' + LP.about.map(t => '<li class="lp-card">' + icon('circleCheck') + '<span>' + h(t) + '</span></li>').join('') + '</ul></div></div></section>';
 

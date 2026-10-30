@@ -17,6 +17,16 @@ var Users = {
     }
   },
   revokeAccess_: function (userId) { Sessions.revokeAllForUser(userId); Devices.revokeAll(userId); },
+  /** Only trainees and graduates hold grades, violations and certificates. */
+  hasLearnerData_: function (u) { return u.role === ROLE.TRAINEE || u.role === ROLE.GRADUATE; },
+  /** What "Reset data" would clear for this user (shown on the Manage user page and in the confirm dialog). */
+  dataSummary_: function (u) {
+    return {
+      grades: Repo.count('grade_records', function (r) { return r.trainee_id === u.id && r.score !== null; }),
+      violations: Repo.count('violations', function (v) { return v.trainee_id === u.id && !v.deleted_at; }),
+      certificates: Repo.count('certificates', function (c) { return c.trainee_id === u.id; })
+    };
+  },
 
   list: function (ctx, p) {
     Authz.require(ctx.user, PERM.USERS_MANAGE);
@@ -34,7 +44,8 @@ var Users = {
     Authz.require(ctx.user, PERM.USERS_MANAGE);
     var t = Users.mustFind_(p && p.id), canOther = !Authz.isSelf(ctx.user, t);
     return { user: Users.present_(t), roles: Users.roleOptions_(), statuses: [USER_STATUS.ACTIVE, USER_STATUS.INACTIVE, USER_STATUS.SUSPENDED],
-      can: { changeRole: canOther, changeStatus: canOther, resetPassword: canOther } };
+      can: { changeRole: canOther, changeStatus: canOther, resetPassword: canOther, resetData: canOther && Users.hasLearnerData_(t) },
+      data_summary: Users.hasLearnerData_(t) ? Users.dataSummary_(t) : null };
   },
   create: function (ctx, p) {
     Authz.require(ctx.user, PERM.USERS_MANAGE);
@@ -94,5 +105,44 @@ var Users = {
     Users.revokeAccess_(t.id);
     Audit.record('user.password_reset', ctx.user, 'user', t.id);
     return { credentials: { username: t.username, password: temp } };
+  },
+  /**
+   * Clears a trainee's / graduate's grades, violations and certificate. The account, batch, progress and quiz attempts are left alone.
+   * - Grades: scores are cleared (rows kept) and each clear is written to grade_revisions, which is append-only.
+   * - Violations: soft-deleted, same as Violations.remove.
+   * - Certificates: the row is removed and its Drive file is trashed.
+   * Runs inside the script lock (W_ in Api.js).
+   */
+  resetData: function (ctx, p) {
+    Authz.require(ctx.user, PERM.USERS_MANAGE);
+    var t = Users.mustFind_(p && p.id);
+    if (Authz.isSelf(ctx.user, t)) forbidden_('You cannot reset your own data.');
+    if (!Users.hasLearnerData_(t)) invalid_('id', 'Only trainees and graduates have grades, violations and certificates to reset.');
+    var v = validate_(p, { reason: { max: 500 } });
+    var now = U.nowIso(), why = 'Data reset by administrator' + (v.reason ? ': ' + v.reason : '');
+
+    // 1) grades
+    var grades = Repo.where('grade_records', function (r) { return r.trainee_id === t.id && r.score !== null; });
+    var revisions = grades.map(function (r) { return { grade_record_id: r.id, old_score: r.score, new_score: null, changed_by: ctx.user.id, changed_at: now, reason: why }; });
+    Repo.updateMany('grade_records', grades.map(function (r) { return { pk: r.id, patch: { score: null, graded_by: null, graded_at: null } }; }));
+    Repo.insertMany('grade_revisions', revisions);
+
+    // 2) violations
+    var viols = Repo.where('violations', function (x) { return x.trainee_id === t.id && !x.deleted_at; });
+    Repo.updateMany('violations', viols.map(function (x) { return { pk: x.id, patch: { deleted_by: ctx.user.id, deleted_at: now } }; }));
+
+    // 3) certificates (+ their stored files)
+    var certs = Repo.where('certificates', function (c) { return c.trainee_id === t.id; });
+    var files = certs.map(function (c) { return c.file_id ? Repo.find('stored_files', c.file_id) : null; }).filter(Boolean);
+    var certNumbers = certs.map(function (c) { return c.certificate_number; });
+    Repo.removeWhere('certificates', function (c) { return c.trainee_id === t.id; });
+    files.forEach(function (f) { DriveStore.discard(f); });
+
+    var counts = { grades: grades.length, violations: viols.length, certificates: certs.length };
+    var d = { grades_cleared: counts.grades, violations_removed: counts.violations, certificates_removed: counts.certificates };
+    if (certNumbers.length) d.certificate_numbers = certNumbers;
+    if (v.reason) d.reason = v.reason;
+    Audit.record('user.data_reset', ctx.user, 'user', t.id, d);
+    return { counts: counts };
   }
 };

@@ -1,4 +1,14 @@
 <style>
+/* ===== Audit log (administration) ===== */
+.al-act{display:inline-block;border-radius:.375rem;padding:.125rem .5rem;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--muted);white-space:nowrap}
+.al-table{min-width:48rem}
+.al-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.75rem}
+.al-filters .al-f{display:grid;gap:.25rem}.al-filters label{margin:0;font-size:12px;color:var(--muted-foreground)}
+.al-filters input[type=date]{width:auto;height:2.25rem;border-radius:.75rem}
+.al-det summary{cursor:pointer;color:var(--muted-foreground);font-size:12px;list-style:none}.al-det summary::-webkit-details-marker{display:none}
+.al-det summary:hover{color:var(--foreground)}
+.al-kv{margin:.5rem 0 0;display:grid;grid-template-columns:max-content 1fr;gap:.125rem .75rem;font-size:12px}
+.al-kv dt{color:var(--muted-foreground)}.al-kv dd{margin:0;overflow-wrap:anywhere}
 /* ===== Announcements (admin): ported from ams-portal-v2 resources/js/pages/announcements/*.tsx ===== */
 .an-list{list-style:none;margin:0;padding:0;display:grid;gap:.75rem}
 .an-item{display:grid;gap:1rem;padding:1.25rem;transition:border-color .15s,box-shadow .15s}
@@ -248,7 +258,7 @@ function annForm(a) {
   const v = k => (a && a[k] !== null && a[k] !== undefined ? a[k] : ''), published = !!(a && a.is_published), len = String(v('body')).length;
   return '<form data-form="annSave" ' + (a ? 'data-id="' + h(a.id) + '"' : '') + ' class="dg" novalidate>' +
     anSection('Memo header', 'Shown as TO, FROM and RE on the public page.', anInput('recipient', 'To', 'All Medical Trainees', v('recipient')) + anInput('sender', 'From', 'Office of the Dean of Medicine', v('sender')) + anInput('subject', 'RE:', 'Subject', v('subject'))) +
-    anSection('Message', '', bField('Context', 'f-body', '<textarea class="rx" name="body" id="f-body" rows="10" maxlength="3000" data-count="3000">' + h(v('body')) + '</textarea><p class="an-count muted" id="an-count">' + len + '/3000</p>') + anInput('signature', 'Name / signature', '[RANK] [USERNAME], [POSITION]', v('signature'))) +
+    anSection('Message', '', bField('Context', 'f-body', '<textarea class="rx" name="body" id="f-body" rows="10" maxlength="1300" data-count="1300">' + h(v('body')) + '</textarea><p class="an-count muted" id="an-count">' + len + '/1300</p>') + bField('Name / signature', 'f-signature', '<textarea class="rx" name="signature" id="f-signature" rows="5" maxlength="500" placeholder="[RANK] [USERNAME], [POSITION]">' + h(v('signature')) + '</textarea>')) +
     (published && a.discord_status === 'sent' ? '<p class="an-note">Edits update the portal only; the message already posted in Discord is not changed.</p>' : '') +
     '<div class="an-form-acts row" style="gap:.75rem"><button type="submit" class="btn rx">' + (a ? 'Save changes' : 'Save as draft') + '</button>' +
     (!published ? '<button type="button" class="btn primary rx" data-act="annPublish">' + (a ? 'Save &amp; publish' : 'Publish now') + '</button>' : '') + '</div></form>';
@@ -290,6 +300,44 @@ function settingsFrame(active, body) {
   const tabs = [['/settings/profile', 'Profile'], ['/settings/security', 'Password'], ['/settings/appearance', 'Appearance']];
   return shell(active, 'Settings', '', '<div class="row" style="margin-bottom:16px">' + tabs.map(t => '<a class="btn sm ' + (t[0] === active ? 'primary' : '') + '" href="#' + t[0] + '" data-go="' + t[0] + '">' + t[1] + '</a>').join('') + '</div>' + body);
 }
+/* ---------- audit log ---------- */
+const alWhen = x => { const dt = new Date(x); return isNaN(dt) ? fmtDT(x) : dt.toLocaleString(); };
+route('/audit-logs', async (p, q, id) => {
+  loadingShell('/audit-logs', '');
+  let d;
+  try { d = await A('logs.list', { search: q.search, category: q.category, date_from: q.date_from, date_to: q.date_to, page: q.page }); }
+  catch (e) { if (!current(id)) return; if (e.code === 'VALIDATION_ERROR' || e.code === 'FORBIDDEN') { toast(e.message, 'bad'); return go(e.code === 'FORBIDDEN' ? '/dashboard' : '/audit-logs'); } throw e; }
+  if (!current(id)) return;
+  const f = d.filters, selStyle = 'width:auto;height:2.25rem;border-radius:.75rem;background:color-mix(in oklab,var(--background) 70%,transparent)';
+  const catSel = '<select name="category" aria-label="Filter by category" style="' + selStyle + ';text-transform:capitalize"><option value="">All categories</option>' +
+    d.categories.map(c => '<option value="' + h(c) + '"' + (f.category === c ? ' selected' : '') + '>' + h(c.replace(/_/g, ' ')) + '</option>').join('') + '</select>';
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap"><span class="chipicon t-violet" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--violet-500) 15%,transparent)">' + bIcon('clipboard', 24) + '</span>' +
+    '<div><h1>Audit log</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Who did what, and when. Entries cannot be edited or deleted.</p></div></div></div>';
+  const filters = '<form data-form="auditFilter" class="al-filters" novalidate>' +
+    '<div class="al-f"><label for="al-search">Search</label><div class="gsearch">' + icon('search') + '<input id="al-search" type="search" name="search" style="width:16rem" placeholder="User, action, subject or detail" value="' + h(f.search || '') + '"></div></div>' +
+    '<div class="al-f"><label for="al-cat">Category</label>' + catSel.replace('<select ', '<select id="al-cat" ') + '</div>' +
+    '<div class="al-f"><label for="al-from">From</label><input id="al-from" type="date" name="date_from" value="' + h(f.date_from || '') + '"></div>' +
+    '<div class="al-f"><label for="al-to">To</label><input id="al-to" type="date" name="date_to" value="' + h(f.date_to || '') + '"></div>' +
+    '<button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Apply</button>' +
+    ((f.search || f.category || f.date_from || f.date_to) ? '<button class="btn ghost rx" type="button" data-act="auditClear">Clear</button>' : '') + '</form>';
+  const rows = d.logs.length === 0 ? '<tr><td colspan="5" class="muted center" style="padding:3rem 1.25rem">No log entries match these filters.</td></tr>'
+    : d.logs.map(l => {
+      const a = l.actor, who = a.username ? '<div style="font-weight:500">' + h(a.name || a.username) + '</div><div class="muted" style="font-size:12px">@' + h(a.username) + (a.role_label ? ' · ' + h(a.role_label) : '') + '</div>'
+        : '<span class="muted">System / guest</span>';
+      const s = l.subject ? (s0 => s0.label ? '<div>' + h(s0.label) + '</div><div class="muted" style="font-size:12px">' + h(s0.type) + '</div>' : '<div>' + h(s0.type) + '</div><div class="muted" style="font-size:12px;overflow-wrap:anywhere">' + h(s0.id) + '</div>')(l.subject) : '<span class="muted">-</span>';
+      const det = l.details.length ? '<details class="al-det"><summary>' + l.details.length + ' detail' + (l.details.length === 1 ? '' : 's') + '</summary><dl class="al-kv">' +
+        l.details.map(k => '<dt>' + h(k.key.replace(/_/g, ' ')) + '</dt><dd>' + h(k.value) + '</dd>').join('') + '</dl></details>' : '<span class="muted">-</span>';
+      return '<tr style="vertical-align:top"><td class="nowrap muted" style="padding-left:1.25rem">' + h(alWhen(l.occurred_at)) + '</td><td>' + who + '</td><td><span class="al-act">' + h(l.action) + '</span></td><td>' + s + '</td><td style="padding-right:1.25rem">' + det + '</td></tr>';
+    }).join('');
+  const th = '<th style="padding-left:1.25rem">When</th><th>Who</th><th>Action</th><th>Subject</th><th style="padding-right:1.25rem">Details</th>';
+  const m = d.meta, from = m.total ? (m.page - 1) * m.per_page + 1 : 0, to = Math.min(m.total, m.page * m.per_page);
+  const pg = '<div class="gpager"><p class="muted" style="margin:0">' + (m.total === 0 ? 'No entries' : 'Showing ' + from + ' to ' + to + ' of ' + m.total) + '</p><div class="row" style="gap:.5rem">' +
+    (m.page > 1 ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page - 1) + '">Previous</button>' : '') + (m.page < m.last_page ? '<button class="btn sm rx" data-act="page" data-page="' + (m.page + 1) + '">Next</button>' : '') + '</div></div>';
+  mount(shell('/audit-logs', '', '', '<div class="dg">' + head + filters + '<div class="gtab"><div style="overflow-x:auto"><table class="al-table"><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + pg + '</div>', '', 'Audit log'));
+});
+Forms.auditFilter = f => { const v = formVals(f); setQuery({ search: (v.search || '').trim(), category: v.category, date_from: v.date_from, date_to: v.date_to }); };
+Actions.auditClear = () => setQuery({ search: '', category: '', date_from: '', date_to: '' });
+
 route('/settings', async () => go('/settings/profile'));
 route('/settings/profile', async () => {
   const u = State.user;

@@ -261,11 +261,26 @@ route('/users/:id/edit', async (p, q, id) => {
     '<div class="row" style="gap:.75rem;align-items:flex-start;flex-wrap:nowrap">' + chipIcon('key', 'rose', 'sm') + '<div><h2>Reset password</h2><p class="muted" style="margin:0;font-size:14px">Generates a new temporary password, shown once. The user must change it at next login and is signed out everywhere.</p></div></div>' +
     '<button type="button" class="btn danger solid rx" data-act="userReset" data-id="' + h(u.id) + '" data-name="' + h(u.name) + '">Reset password</button></section>' : '';
 
-  mount(shell('/users', '', '', '<div class="dg">' + head + '<div class="dg dg-trend">' + details + '<div class="dg">' + access + '</div></div>' + reset + '</div>', '', [{ t: 'Users', to: '/users' }, { t: 'Manage user', to: '/users' }]));
+  const ds = d.data_summary || { grades: 0, violations: 0, certificates: 0 };
+  const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+  const resetData = d.can.resetData ? '<section class="row between" style="gap:1rem;border-radius:1rem;border:1px solid color-mix(in oklab,var(--rose-500) 25%,transparent);background:color-mix(in oklab,var(--rose-500) 5%,transparent);padding:1.25rem">' +
+    '<div class="row" style="gap:.75rem;align-items:flex-start;flex-wrap:nowrap">' + chipIcon('refresh', 'rose', 'sm') + '<div><h2>Reset data</h2><p class="muted" style="margin:0;font-size:14px">Clears this user\'s grades, violations and certificate. The account, batch and progress are kept.</p>' +
+    '<p class="muted" style="margin:.25rem 0 0;font-size:12px">Currently: ' + h(plural(ds.grades, 'grade') + ', ' + plural(ds.violations, 'violation') + ', ' + plural(ds.certificates, 'certificate')) + '.</p></div></div>' +
+    '<button type="button" class="btn danger solid rx" data-act="userResetData" data-id="' + h(u.id) + '" data-name="' + h(u.name) + '" data-g="' + ds.grades + '" data-v="' + ds.violations + '" data-c="' + ds.certificates + '">Reset data</button></section>' : '';
+
+  mount(shell('/users', '', '', '<div class="dg">' + head + '<div class="dg dg-trend">' + details + '<div class="dg">' + access + '</div></div>' + reset + resetData + '</div>', '', [{ t: 'Users', to: '/users' }, { t: 'Manage user', to: '/users' }]));
 });
 Forms.userEdit = async f => { const v = formVals(f); const body = { id: f.dataset.id, name: v.name, email: v.email }; if (!$('[name=role]', f).disabled) body.role = v.role; if (!body.email) delete body.email; await submitForm(f, 'users.update', body, () => go(State.path)); };
 Forms.userStatus = async f => { await submitForm(f, 'users.status', { id: f.dataset.id, status: $('[name=status]', f).value }, () => go(State.path)); };
 Actions.userReset = async el => { const ok = await confirmDialog({ title: 'Reset password?', message: 'Reset the password for ' + (el.dataset.name || 'this user') + '? Their current password will stop working and they are signed out everywhere.', confirmText: 'Reset password', danger: true }); if (!ok) return; await busy(el, async () => { const d = await A('users.resetPassword', { id: el.dataset.id }); showCredentials(d.credentials, 'Password reset'); }); };
+
+Actions.userResetData = async el => {
+  const g = +el.dataset.g || 0, v = +el.dataset.v || 0, ce = +el.dataset.c || 0, n = (x, w) => x + ' ' + w + (x === 1 ? '' : 's');
+  const ok = await confirmDialog({ title: 'Reset data?', danger: true, confirmText: 'Reset data', reason: 'Reason (optional, saved in the audit log)',
+    message: 'This clears ' + n(g, 'grade') + ', ' + n(v, 'violation') + ' and ' + n(ce, 'certificate') + ' for ' + (el.dataset.name || 'this user') + '. Issued certificate files are deleted. This cannot be undone.' });
+  if (!ok) return;
+  await busy(el, async () => { const d = await A('users.resetData', { id: el.dataset.id, reason: ok.reason || '' }); toast(d.message || 'Data reset.', 'ok'); go(State.path); });
+};
 
 /* ---------- batches (ported 1:1 from resources/js/pages/batches/index.tsx, show.tsx and create.tsx) ---------- */
 Object.assign(ICONS, { userPlus: 'M2 21a8 8 0 0 1 13.292-6M15 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0M19 16v6M22 19h-6' });

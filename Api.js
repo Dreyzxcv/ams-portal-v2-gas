@@ -89,6 +89,14 @@ function buildActions_() {
   'users.create': W_(Users.create), 'users.update': W_(function (c, p) { var r = Users.update(c, p); r.message = 'User updated.'; return r; }),
   'users.status': W_(function (c, p) { var r = Users.changeStatus(c, p); r.message = 'Status updated.'; return r; }),
   'users.resetPassword': W_(Users.resetPassword),
+  'users.resetData': W_(function (c, p) {
+    var r = Users.resetData(c, p), n = r.counts;
+    r.message = 'Data reset: ' + n.grades + ' grade' + (n.grades === 1 ? '' : 's') + ', ' + n.violations + ' violation' + (n.violations === 1 ? '' : 's') + ', ' + n.certificates + ' certificate' + (n.certificates === 1 ? '' : 's') + ' cleared.';
+    return r;
+  }),
+
+  // ---- audit log ----
+  'logs.list': R_(AuditLogs.list, PERM.LOGS_VIEW),
 
   // ---- batches ----
   'batches.list': R_(Batches.list), 'batches.show': R_(Batches.show),

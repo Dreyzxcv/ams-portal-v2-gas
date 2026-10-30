@@ -8,7 +8,7 @@ var Announcements = {
   rules_: function () {
     var line = { required: true, max: 150, notNewline: true };
     return { recipient: Object.assign({ label: 'To' }, line), sender: Object.assign({ label: 'From' }, line), subject: Object.assign({ label: 'RE' }, line),
-      body: { required: true, max: 3000, label: 'context' }, signature: Object.assign({ label: 'name/signature' }, line), publish: { type: 'bool' } };
+      body: { required: true, max: 1300, label: 'context' }, signature: { required: true, max: 500, label: 'name/signature' }, publish: { type: 'bool' } };
   },
   present_: function (a, users) {
     var au = a.created_by ? users[a.created_by] : null;
@@ -82,11 +82,23 @@ var Announcements = {
   },
 
   isWebhookUrl_: function (url) { return /^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(url); },
+
+  toDiscord_: function (text) {
+    var map = {};
+    try { map = JSON.parse(Config.get('DISCORD_MENTIONS') || '{}'); } catch (e) { /* ignore bad JSON */ }
+    Object.keys(map).sort(function (a, b) { return b.length - a.length; }).forEach(function (name) {
+      var id = String(map[name]), tag = id.charAt(0) === '&' ? '<@&' + id.slice(1) + '>' : '<@' + id + '>';
+      text = text.split('@' + name).join(tag);
+    });
+    var em = {}; try { em = JSON.parse(Config.get('DISCORD_EMOJIS') || '{}'); } catch (e) {}
+    Object.keys(em).forEach(function (k) { text = text.split(':' + k + ':').join(em[k]); });
+    return text;
+  },
   payload_: function (a) {
-    var d = 'TO: ' + a.recipient + '\nFROM: ' + a.sender + '\nRE: ' + a.subject + '\n\n' + a.body + '\n\n\u2014 ' + a.signature;
-    d = '**TO:** ' + a.recipient + '\n**FROM:** ' + a.sender + '\n**RE:** ' + a.subject + '\n\n' + a.body + '\n\n\u2014 ' + a.signature;
-    if (d.length > 4000) d = d.slice(0, 3997) + '...';
-    return { allowed_mentions: { parse: [] }, embeds: [{ title: 'Army Medical School \u2014 Announcement', description: d, color: 0x0284C7, timestamp: a.published_at }] };
+    var d = '[**TO**]: ' + a.recipient + '\n[**FROM**]: ' + a.sender + '\n[**RE**]: ' + a.subject + '\n\n' + a.body + '\n\n' + a.signature;
+    d = Announcements.toDiscord_(d);
+    if (d.length > 2000) d = d.slice(0, 1997) + '...';
+    return { allowed_mentions: { parse: ['users', 'roles'] }, content: d };
   },
   /** Lock-claim -> HTTP (outside the lock) -> record result. Never leaves the row stuck in "sending". */
   sendToDiscord_: function (id) {
