@@ -305,10 +305,10 @@ route('/login/otp', async () => {
   let info = { email: State.maskEmail || '', resend_in: State.resendIn || 0 };
   if (!State.maskEmail) { try { const d = await A('auth.pending', { pending: tok }); if (d.step !== 'otp') return go('/login/email'); info = d; } catch (e) { setPending(null); toast(e.message, 'bad'); return go('/login'); } }
   mount(authFrame('<h1 style="margin-bottom:4px">Check your email</h1><p class="muted" style="margin:0 0 18px">We sent a 6-digit code to <b>' + h(info.email) + '</b>. It expires in a few minutes.</p>' +
-    '<form data-form="otp" novalidate>' + field('Verification code', '<input type="text" name="code" id="f-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required style="letter-spacing:.4em;font-size:20px;text-align:center">') +
+    '<form data-form="otp" novalidate>' + field('Verification code', otpBoxes('code', { auto: true })) +
     '<label class="check" style="margin-bottom:16px"><input type="checkbox" name="trust"> Trust this device for 30 days</label><button class="btn primary" style="width:100%" type="submit">Verify and sign in</button></form>' +
     '<div class="row between" style="margin-top:14px">' + resendButton('Resend code', info.resend_in) + '<a href="#/login" data-go="/login" class="small">Use a different account</a></div>'));
-  startCountdown('Resend code'); $('#f-code').focus();
+  startCountdown('Resend code'); $('.otp-box').focus();
 }, { public: true, guest: true });
 Forms.otp = async f => {
   const v = formVals(f);
@@ -326,9 +326,9 @@ route('/login/email', async () => {
   if (email === undefined || email === null) { try { const d = await A('auth.pending', { pending: tok }); if (d.step !== 'email_setup') return go('/login/otp'); email = d.email; resend = d.resend_in; } catch (e) { setPending(null); toast(e.message, 'bad'); return go('/login'); } }
   const body = !email
     ? '<h1 style="margin-bottom:4px">Add your email</h1><p class="muted" style="margin:0 0 18px">Your account has no email yet. Enter one to receive sign-in codes.</p><form data-form="emailSubmit" novalidate>' + field('Email address', input('email', { type: 'email', required: true, auto: 'email', max: 255 })) + '<button class="btn primary" style="width:100%" type="submit">Send code</button></form>'
-    : '<h1 style="margin-bottom:4px">Verify your email</h1><p class="muted" style="margin:0 0 18px">Enter the 6-digit code sent to <b>' + h(email) + '</b>.</p><form data-form="emailVerify" novalidate>' + field('Verification code', '<input type="text" name="code" id="f-code" inputmode="numeric" maxlength="6" required style="letter-spacing:.4em;font-size:20px;text-align:center">') +
+    : '<h1 style="margin-bottom:4px">Verify your email</h1><p class="muted" style="margin:0 0 18px">Enter the 6-digit code sent to <b>' + h(email) + '</b>.</p><form data-form="emailVerify" novalidate>' + field('Verification code', otpBoxes('code', { auto: true })) +
       '<label class="check" style="margin-bottom:16px"><input type="checkbox" name="trust"> Trust this device for 30 days</label><button class="btn primary" style="width:100%" type="submit">Verify and sign in</button></form><div class="row between" style="margin-top:14px">' + resendButton('Resend code', resend) + '<a href="#" data-act="emailChange" class="small">Use a different email</a></div>';
-  mount(authFrame(body + '<p class="center small" style="margin:16px 0 0"><a href="#/login" data-go="/login">Cancel</a></p>')); startCountdown('Resend code');
+  mount(authFrame(body + '<p class="center small" style="margin:16px 0 0"><a href="#/login" data-go="/login">Cancel</a></p>')); startCountdown('Resend code'); const ob = $('.otp-box'); if (ob) ob.focus();
 }, { public: true, guest: true });
 Forms.emailSubmit = async f => { const v = formVals(f); await submitForm(f, 'auth.emailSubmit', { pending: pendingToken(), email: v.email }, d => { State.emailAddr = d.email; State.resendIn = d.resend_in; go('/login/email'); }); };
 Forms.emailVerify = async f => { const v = formVals(f); await submitForm(f, 'auth.emailVerify', { pending: pendingToken(), code: v.code.trim(), trust: !!v.trust, device_label: (navigator.userAgent || '').slice(0, 100) }, finishLogin); };
@@ -342,7 +342,7 @@ Forms.forgot = async f => { await submitForm(f, 'auth.forgot', { email: formVals
 route('/reset', async () => {
   if (!State.resetPending) return go('/forgot');
   mount(authFrame('<h1 style="margin-bottom:4px">Reset password</h1><p class="muted" style="margin:0 0 18px">Enter the code from your email and choose a new password.</p><form data-form="reset" novalidate>' +
-    field('Code', '<input type="text" name="code" inputmode="numeric" maxlength="6" required>') + field('New password', input('password', { type: 'password', required: true, auto: 'new-password' }), { hint: 'At least 12 characters.' }) + field('Confirm password', input('password_confirmation', { type: 'password', required: true, auto: 'new-password' })) +
+    field('Code', otpBoxes('code')) + field('New password', input('password', { type: 'password', required: true, auto: 'new-password' }), { hint: 'At least 12 characters.' }) + field('Confirm password', input('password_confirmation', { type: 'password', required: true, auto: 'new-password' })) +
     '<button class="btn primary" style="width:100%" type="submit">Reset password</button></form>'));
 }, { public: true, guest: true });
 Forms.reset = async f => { const v = formVals(f); await submitForm(f, 'auth.reset', { pending: State.resetPending, code: v.code.trim(), password: v.password, password_confirmation: v.password_confirmation }, () => { State.resetPending = null; toast('Password reset. You can sign in now.', 'ok'); go('/login'); }); };
