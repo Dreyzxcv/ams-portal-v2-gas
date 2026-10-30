@@ -362,19 +362,23 @@ const gpager = m => { if (!m) return ''; const from = m.total ? (m.page - 1) * m
 
 route('/grades', async (p, q, id) => {
   loadingShell('/grades', '');
-  const d = await A('grades.index', { search: q.search, page: q.page }); if (!current(id)) return;
+  // Medical Trainees only by default. "Include graduates" (?graduates=1) also lists graduates.
+  const withGrads = q.graduates === '1';
+  const d = await A('grades.index', { search: q.search, page: q.page, graduates: withGrads ? '1' : '' }); if (!current(id)) return;
   if (d.redirect) return go('/grades/' + d.redirect.id);
   const head = '<div class="ghead"><div><h1>Grades</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Trainee scores per phase and the final examination</p></div>' +
-    '<form data-form="gradeSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div><button class="btn primary rx" type="submit">Search</button></form></div>';
+    '<div class="row" style="gap:1rem"><label class="check" style="font-size:14px;cursor:pointer"><input type="checkbox" data-grad-toggle' + (withGrads ? ' checked' : '') + '> Include graduates</label>' +
+    '<form data-form="gradeSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div><button class="btn primary rx" type="submit">Search</button></form></div></div>';
   const th = '<th style="padding-left:1.25rem">Trainee</th>' + d.components.map(c => '<th class="nowrap"><div style="color:var(--foreground)">' + h(c.label) + '</div><div style="font-weight:400">Out of ' + Number(c.max_score) + ', pass at ' + Number(c.pass_score) + '</div></th>').join('') + '<th style="padding-right:1.25rem"></th>';
   const rows = d.trainees.length === 0 ? '<tr><td colspan="' + (d.components.length + 2) + '" class="muted center" style="padding:3rem 1.25rem">No trainees found.</td></tr>'
-    : d.trainees.map(t => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(t.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + '</div><div class="muted" style="font-size:12px">@' + h(t.username) + '</div></div></div></td>' +
+    : d.trainees.map(t => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(t.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + (t.role === 'graduate' ? ' <span class="statusbadge t-violet" style="margin-left:.25rem">Graduate</span>' : '') + '</div><div class="muted" style="font-size:12px">@' + h(t.username) + '</div></div></div></td>' +
       d.components.map(c => { const s = t.scores[c.id], has = s !== undefined && s !== null, failed = has && Number(s) < Number(c.pass_score);
         return '<td><span class="gscore ' + (!has ? 'muted' : failed ? 'gs-fail' : 'gs-pass') + '">' + (has ? Number(s) : '-') + '</span></td>'; }).join('') +
       '<td class="right" style="padding-right:1.25rem"><a class="btn sm rx" href="#/grades/' + h(t.id) + '" data-go="/grades/' + h(t.id) + '">Open</a></td></tr>').join('');
   mount(shell('/grades', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + gpager(d.meta) + '</div>', '', 'Grades'));
 });
 Forms.gradeSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
+document.addEventListener('change', e => { const t = e.target; if (t && t.matches && t.matches('input[data-grad-toggle]')) setQuery({ graduates: t.checked ? '1' : '' }); });
 
 function scoreRing(pct, cls, inner) {
   const size = 84, w = 7, r = (size - w) / 2, c = 2 * Math.PI * r;

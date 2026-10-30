@@ -56,14 +56,18 @@ var Grades = {
     if (Authz.isGraduate(ctx.user)) forbidden_();
     if (!Authz.allows(ctx.user, PERM.GRADES_VIEW_ALL)) return { redirect: { page: 'grades/show', id: ctx.user.id } };
     p = p || {};
+    // Medical Trainees only by default; staff can switch on "Include graduates" to list graduates too.
+    var withGraduates = p.graduates === true || p.graduates === 1 || p.graduates === '1' || p.graduates === 'true';
     var search = U.trim(p.search), totals = GradeCalc.quizTotals(), comps = GradeCalc.components();
     var scoresByTrainee = {};
     Repo.all('grade_records').forEach(function (r) { (scoresByTrainee[r.trainee_id] = scoresByTrainee[r.trainee_id] || {})[r.component_id] = r.score; });
-    var rows = Users.live_().filter(function (u) { return (u.role === ROLE.TRAINEE || u.role === ROLE.GRADUATE) && (!search || U.matches(search, [u.name, u.username])); }).sort(U.byName);
+    var rows = Users.live_().filter(function (u) {
+      return (u.role === ROLE.TRAINEE || (withGraduates && u.role === ROLE.GRADUATE)) && (!search || U.matches(search, [u.name, u.username]));
+    }).sort(U.byName);
     var pg = paginate_(rows, p.page);
-    return { trainees: pg.data.map(function (t) { return { id: t.id, name: t.name, username: t.username, scores: scoresByTrainee[t.id] || {} }; }), meta: pg.meta,
+    return { trainees: pg.data.map(function (t) { return { id: t.id, name: t.name, username: t.username, role: t.role, scores: scoresByTrainee[t.id] || {} }; }), meta: pg.meta,
       components: comps.map(function (c) { return { id: c.id, label: c.label, max_score: GradeCalc.fmt(GradeCalc.effMax(c, totals)), pass_score: GradeCalc.fmt(GradeCalc.effPass(c, totals)) }; }),
-      filters: { search: search } };
+      filters: { search: search, graduates: withGraduates } };
   },
 
   show: function (ctx, p) {

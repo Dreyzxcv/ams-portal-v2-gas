@@ -26,6 +26,34 @@
 .cf-pdfm{display:flex;flex-direction:column;align-items:center;gap:.75rem;border:1px solid var(--border);border-radius:.75rem;background:color-mix(in oklab,var(--muted) 60%,transparent);padding:2rem 1rem;text-align:center}.cf-pdfm p{margin:0;font-size:14px;color:var(--muted-foreground)}.cf-pdfm svg{width:2rem;height:2rem;color:var(--muted-foreground)}
 .cf-open{display:none;align-items:center;gap:.25rem;font-size:12px;color:var(--muted-foreground)}.cf-open:hover{color:var(--foreground)}.cf-open svg{width:.75rem;height:.75rem}
 @media(min-width:640px){.cf-pdf{display:block}.cf-pdfm{display:none}.cf-open{display:inline-flex}}
+
+/* ===== Chain of Command (public): ported 1:1 from ams-portal-v2 resources/js/pages/chain-of-command/index.tsx ===== */
+.coc{background:var(--background);color:var(--foreground);min-height:100vh}
+.coc-main{display:flex;flex-direction:column;gap:2rem;width:100%;max-width:64rem;margin:0 auto;padding:2rem 1rem}
+@media(min-width:640px){.coc-main{padding:2rem 1.5rem}}
+.coc-top{display:flex;flex-direction:column;gap:1rem}
+.coc-top .btn{align-self:flex-start;margin-left:-.5rem}
+.coc-head{display:flex;align-items:flex-start;gap:.75rem}
+.coc-tile{display:flex;flex:none;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;border-radius:.75rem;background:color-mix(in oklab,var(--sky-500) 10%,transparent);color:var(--sky-600)}
+:root[data-theme="dark"] .coc-tile{color:var(--sky-400)}
+.coc-tile svg{width:1.25rem;height:1.25rem}
+.coc-head>div:last-child{display:flex;flex-direction:column;gap:.25rem}
+.coc-head h1{margin:0;font-size:24px;line-height:32px;font-weight:600;letter-spacing:-.025em}
+.coc-head p{margin:0;font-size:14px;line-height:20px;color:var(--muted-foreground)}
+@media(min-width:640px){.coc-head h1{font-size:30px;line-height:36px}}
+.coc-empty{margin:0;border:1px dashed var(--border);border-radius:1rem;padding:3rem 1.5rem;text-align:center;font-size:14px;line-height:20px;color:var(--muted-foreground)}
+.coc-grid{list-style:none;margin:0;padding:0;display:grid;gap:1rem;grid-template-columns:minmax(0,1fr)}
+@media(min-width:640px){.coc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.coc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.coc-card{display:flex;flex-direction:column;align-items:center;gap:.75rem;background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:1.5rem;text-align:center;box-shadow:var(--sh-xs);min-width:0}
+.coc-card img{width:6rem;height:6rem;border-radius:1rem;object-fit:cover}
+.coc-ini{display:flex;align-items:center;justify-content:center;width:6rem;height:6rem;border-radius:1rem;background:color-mix(in oklab,var(--sky-500) 10%,transparent);color:var(--sky-700);font-size:24px;line-height:32px;font-weight:600}
+:root[data-theme="dark"] .coc-ini{color:var(--sky-300)}
+.coc-txt{display:flex;flex-direction:column;gap:.125rem;min-width:0;max-width:100%}
+.coc-rank{margin:0;font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;color:var(--muted-foreground);overflow-wrap:anywhere}
+.coc-name{margin:0;font-size:14px;line-height:20px;font-weight:600;overflow-wrap:anywhere}
+.coc-pos{margin:0;font-size:14px;line-height:20px;overflow-wrap:anywhere}
+.coc-note{margin:0;font-size:12px;line-height:1.625;color:var(--muted-foreground);overflow-wrap:anywhere;white-space:pre-line}
 </style>
 <script>
 /* ===== Certificates, chain of command, announcements, recruitment, settings ===== */
@@ -33,7 +61,8 @@
 Object.assign(ICONS, {
   file: 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7zM14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8',
   externalLink: 'M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
-  settings2: 'M20 7h-9M14 17H5M20 17a3 3 0 1 0-6 0 3 3 0 0 0 6 0M10 7a3 3 0 1 0-6 0 3 3 0 0 0 6 0'
+  settings2: 'M20 7h-9M14 17H5M20 17a3 3 0 1 0-6 0 3 3 0 0 0 6 0M10 7a3 3 0 1 0-6 0 3 3 0 0 0 6 0',
+  network: 'M17 16h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM3 16h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM10 2h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8'
 });
 const CF = { modal: null, urls: [], local: null };
 const CF_TONE = { issued: 'emerald', revoked: 'rose', pending: 'amber', none: 'muted' };
@@ -122,21 +151,61 @@ Actions.certPreview = async el => busy(el, async () => {
   openModal({ title: 'Certificate', wide: true, onClose: () => URL.revokeObjectURL(url), body: f.mime === 'application/pdf' ? '<iframe src="' + url + '" style="width:100%;height:70vh;border:1px solid var(--border);border-radius:8px" title="Certificate"></iframe><p class="muted small">If the preview does not display, use Download instead.</p>' : '<img src="' + url + '" alt="Certificate" style="max-width:100%;border-radius:8px">' });
 });
 
-/* ---------- chain of command (manage) ---------- */
+/* ---------- chain of command (public page) ----------
+   Ported 1:1 from ams-portal-v2 resources/js/pages/chain-of-command/index.tsx.
+   PagesAuth.html registers an older version of this route first, so drop it before registering this one. */
+(function () { const i = Routes.findIndex(r => r.re.test('/chain-of-command')); if (i !== -1) Routes.splice(i, 1); })();
+route('/chain-of-command', async (p, q, id) => {
+  loadingShell('/chain-of-command', '');
+  const d = await A('public.chain'); if (!current(id)) return;
+  const list = d.entries.length === 0
+    ? '<p class="coc-empty">The chain of command has not been published yet.</p>'
+    : '<ol class="coc-grid">' + d.entries.map(e =>
+      '<li class="coc-card">' +
+        (e.image_url
+          ? '<img src="' + h(e.image_url) + '" alt="' + h(e.rank + ' ' + e.name) + '" referrerpolicy="no-referrer" loading="lazy">'
+          : '<span class="coc-ini" aria-hidden="true">' + h(initials(e.name)) + '</span>') +
+        '<div class="coc-txt"><p class="coc-rank">' + h(e.rank) + '</p><h2 class="coc-name">' + h(e.name) + '</h2><p class="coc-pos">' + h(e.position) + '</p></div>' +
+        (e.note ? '<p class="coc-note">' + h(e.note) + '</p>' : '') +
+      '</li>').join('') + '</ol>';
+  mount('<div class="coc"><main class="coc-main"><div class="coc-top">' +
+    '<a class="btn sm ghost rx" href="#/" data-go="/">' + icon('arrowLeft') + 'Back to home</a>' +
+    '<div class="coc-head"><span class="coc-tile">' + icon('network').replace('<svg ', '<svg aria-hidden="true" ') + '</span><div><h1>Chain of Command</h1><p>Leadership of the Army Medical School.</p></div></div></div>' +
+    list + '</main></div>');
+}, { public: true });
+
+/* ---------- chain of command (manage) ----------
+   Ported 1:1 from ams-portal-v2 resources/js/pages/chain-of-command/manage.tsx. */
 route('/chain-of-command/manage', async (p, q, id) => {
-  loadingShell('/chain-of-command/manage', 'Chain of Command');
+  loadingShell('/chain-of-command/manage', '');
   const d = await A('chain.manage'); if (!current(id)) return;
   State.chainHosts = d.image_hosts;
-  mount(shell('/chain-of-command/manage', 'Chain of Command', '<button class="btn primary" data-act="chainEdit">' + icon('plus') + 'Add entry</button><a class="btn" href="#/chain-of-command" data-go="/chain-of-command">Public page</a>', '<div class="card">' + table([{ h: 'Order', cls: 'center', f: e => e.sort_order }, { h: 'Person', f: e => '<b>' + h(e.name) + '</b><div class="muted small">' + h(e.rank) + '</div>' }, { h: 'Position', f: e => h(e.position) }, { h: 'Portrait', cls: 'hide-sm', f: e => e.image_url ? badge('Image', 'ok') : '—' },
-    { h: '', cls: 'right nowrap', f: e => '<button class="btn sm" data-act="chainEdit" data-e="' + h(JSON.stringify(e)) + '">' + icon('edit') + 'Edit</button> <button class="btn sm danger" data-act="chainDelete" data-id="' + h(e.id) + '" aria-label="Delete">' + icon('trash') + '</button>' }], d.entries, 'No entries yet.') + '</div>'));
+  const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0"><span class="chipicon t-sky" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--sky-500) 15%,transparent)">' + bIcon('network', 24) + '</span>' +
+    '<div style="min-width:0"><h1>Chain of Command</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Changes appear immediately on the <a href="#/chain-of-command" data-go="/chain-of-command" style="text-decoration:underline;color:inherit">public page</a></p></div></div>' +
+    '<button type="button" class="btn sm primary rx" data-act="chainEdit">' + icon('plus') + 'Add entry</button></div>';
+  const rows = d.entries.length === 0 ? '<tr><td colspan="5" class="muted center" style="padding:3rem 1.25rem">No entries yet.</td></tr>'
+    : d.entries.map(e => '<tr><td style="padding-left:1.25rem;font-variant-numeric:tabular-nums">' + h(e.sort_order) + '</td><td style="font-weight:500">' + h(e.name) + '</td><td class="muted">' + h(e.rank) + '</td><td>' + h(e.position) + '</td>' +
+      '<td style="padding-right:1.25rem"><div class="row" style="justify-content:flex-end;gap:.5rem;flex-wrap:nowrap"><button type="button" class="btn sm rx" data-act="chainEdit" data-e="' + h(JSON.stringify(e)) + '">' + icon('edit') + 'Edit</button>' +
+      '<button type="button" class="btn sm danger solid rx" data-act="chainDelete" data-id="' + h(e.id) + '" data-name="' + h(e.name) + '">' + icon('trash') + 'Remove</button></div></td></tr>').join('');
+  const th = '<th style="padding-left:1.25rem">Order</th><th>Name</th><th>Rank</th><th>Position</th><th style="padding-right:1.25rem"></th>';
+  mount(shell('/chain-of-command/manage', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div></div>', '', 'Chain of Command'));
 });
+const chainField = (label, name, inner, hint) => '<div style="display:grid;gap:.5rem;margin-bottom:1rem"><label for="f-' + name + '" style="margin:0">' + h(label) + '</label>' + inner + (hint ? '<p class="muted" style="margin:0;font-size:12px">' + h(hint) + '</p>' : '') + '</div>';
 Actions.chainEdit = el => {
-  const e = el.dataset.e ? JSON.parse(el.dataset.e) : null;
-  openModal({ title: e ? 'Edit entry' : 'Add entry', body: '<form data-form="chainSave" ' + (e ? 'data-id="' + h(e.id) + '"' : '') + ' novalidate>' + field('Name', input('name', { value: e && e.name, required: true, max: 150 })) + '<div class="grid g2">' + field('Rank', input('rank', { value: e && e.rank, required: true, max: 100 })) + field('Sort order', input('sort_order', { type: 'number', value: e ? e.sort_order : 0, min: 0, maxn: 65535 })) + '</div>' + field('Position', input('position', { value: e && e.position, required: true, max: 150 })) +
-    field('Portrait image URL', input('image_url', { value: e && e.image_url, max: 500, ph: 'https://i.imgur.com/example.png' }), { hint: 'Direct https link (.jpg, .png, .webp) hosted on: ' + (State.chainHosts || []).join(', ') }) + field('Note', '<textarea name="note" maxlength="1000">' + h(e && e.note) + '</textarea>') + '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-modal-close>Cancel</button><button class="btn primary" type="submit">Save</button></div></form>' });
+  const e = el.dataset.e ? JSON.parse(el.dataset.e) : null, v = k => (e && e[k] !== null && e[k] !== undefined ? e[k] : '');
+  openModal({ title: e ? 'Edit entry' : 'New entry', body: '<p class="muted" style="margin:-.5rem 0 1rem;font-size:14px">Shown on the public Chain of Command page.</p>' +
+    '<form data-form="chainSave" ' + (e ? 'data-id="' + h(e.id) + '"' : '') + ' novalidate>' +
+    chainField('Name', 'name', rxi(input('name', { value: v('name'), required: true, max: 150 }))) +
+    chainField('Rank', 'rank', rxi(input('rank', { value: v('rank'), required: true, max: 150 }))) +
+    chainField('Position', 'position', rxi(input('position', { value: v('position'), required: true, max: 150 }))) +
+    chainField('Note (optional)', 'note', '<textarea class="rx" name="note" id="f-note" rows="3" maxlength="1000">' + h(v('note')) + '</textarea>') +
+    chainField('Display order', 'sort_order', rxi(input('sort_order', { type: 'number', value: e ? e.sort_order : 0, min: 0, maxn: 65535 })), 'Lower numbers appear first.') +
+    chainField('Photo link (optional)', 'image_url', rxi(input('image_url', { type: 'url', value: v('image_url'), max: 500, ph: 'https://www.image2url.com/r2/default/images/example.png' })),
+      'Direct image link only (ends in .jpg, .png or .webp). Page links will not work. Leave blank for no photo.' + (State.chainHosts && State.chainHosts.length ? ' Allowed hosts: ' + State.chainHosts.join(', ') + '.' : '')) +
+    '<div class="row" style="justify-content:flex-end;gap:.5rem;padding-top:.25rem"><button type="button" class="btn ghost rx" data-modal-close>Cancel</button><button class="btn primary rx" type="submit">Save</button></div></form>' });
 };
-Forms.chainSave = async f => { const v = formVals(f); if (f.dataset.id) v.id = f.dataset.id; await submitForm(f, f.dataset.id ? 'chain.update' : 'chain.create', v, () => { const o = f.closest('.overlay'); if (o) o.remove(); go(State.path); }); };
-Actions.chainDelete = async el => { const ok = await confirmDialog({ title: 'Remove entry?', message: 'It will disappear from the public page.', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('chain.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path); }); };
+Forms.chainSave = async f => { const v = formVals(f); if (f.dataset.id) v.id = f.dataset.id; await submitForm(f, f.dataset.id ? 'chain.update' : 'chain.create', v, () => { const o = f.closest('.overlay'); if (o) o.remove(); go(State.path, false, true); }); };
+Actions.chainDelete = async el => { const ok = await confirmDialog({ title: 'Remove entry?', message: 'Remove ' + (el.dataset.name || 'this entry') + '? It will disappear from the public page.', confirmText: 'Remove', danger: true }); if (!ok) return; await busy(el, async () => { await A('chain.delete', { id: el.dataset.id }); toast(A.lastMessage, 'ok'); go(State.path, false, true); }); };
 
 /* ---------- announcements (ported 1:1 from resources/js/pages/announcements/index.tsx, form.tsx, create.tsx and edit.tsx) ---------- */
 Object.assign(ICONS, { pinOff: 'M12 17v5M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89M2 2l20 20M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11' });
