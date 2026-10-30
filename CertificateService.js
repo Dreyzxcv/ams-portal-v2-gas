@@ -67,7 +67,8 @@ var Certificates = {
     p = p || {};
     var search = U.trim(p.search), certs = {}, files = Repo.index('stored_files', 'id');
     Repo.all('certificates').forEach(function (c) { certs[c.trainee_id] = c; });
-    var rows = Users.live_().filter(function (u) { return u.role === ROLE.TRAINEE && (!search || U.matches(search, [u.name, u.username])); }).sort(U.byName);
+    // Medical Trainees and Graduates can both hold a certificate.
+    var rows = Users.live_().filter(function (u) { return (u.role === ROLE.TRAINEE || u.role === ROLE.GRADUATE) && (!search || U.matches(search, [u.name, u.username])); }).sort(U.byName);
     var pg = paginate_(rows, p.page);
     return { trainees: pg.data.map(function (t) {
       var c = certs[t.id], f = c && c.file_id ? files[c.file_id] : null;

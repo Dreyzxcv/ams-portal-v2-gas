@@ -1,6 +1,7 @@
 /** DashboardService.gs - staff and trainee dashboards (DashboardService.php). Every number is computed from stored records. */
 var Dashboard = {
-  get: function (ctx) { return ctx.user.role === ROLE.TRAINEE ? Dashboard.trainee_(ctx.user) : Dashboard.staff_(ctx.user); },
+  // Trainees and graduates share the personal dashboard (own grades, certificate, etc.).
+  get: function (ctx) { return Authz.isLearner(ctx.user) ? Dashboard.trainee_(ctx.user) : Dashboard.staff_(ctx.user); },
 
   staff_: function (u) {
     var groups = [], users = Users.live_(), today = U.today();

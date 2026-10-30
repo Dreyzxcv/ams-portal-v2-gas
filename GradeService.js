@@ -44,19 +44,22 @@ var Grades = {
     Repo.where('grade_records', function (r) { return r.trainee_id === traineeId; }).forEach(function (r) { m[r.component_id] = r; });
     return m;
   },
+  /** A "trainee" target for grading/certificates/progress: Medical Trainee or Graduate. */
   trainee_: function (id) {
     var t = typeof id === 'string' ? Repo.find('users', id) : null;
-    if (!t || t.deleted_at || t.role !== ROLE.TRAINEE) notFound_('Trainee not found.');
+    if (!t || t.deleted_at || (t.role !== ROLE.TRAINEE && t.role !== ROLE.GRADUATE)) notFound_('Trainee not found.');
     return t;
   },
 
   index: function (ctx, p) {
+    // Graduates only see their grades on their dashboard, not on the Grades pages.
+    if (Authz.isGraduate(ctx.user)) forbidden_();
     if (!Authz.allows(ctx.user, PERM.GRADES_VIEW_ALL)) return { redirect: { page: 'grades/show', id: ctx.user.id } };
     p = p || {};
     var search = U.trim(p.search), totals = GradeCalc.quizTotals(), comps = GradeCalc.components();
     var scoresByTrainee = {};
     Repo.all('grade_records').forEach(function (r) { (scoresByTrainee[r.trainee_id] = scoresByTrainee[r.trainee_id] || {})[r.component_id] = r.score; });
-    var rows = Users.live_().filter(function (u) { return u.role === ROLE.TRAINEE && (!search || U.matches(search, [u.name, u.username])); }).sort(U.byName);
+    var rows = Users.live_().filter(function (u) { return (u.role === ROLE.TRAINEE || u.role === ROLE.GRADUATE) && (!search || U.matches(search, [u.name, u.username])); }).sort(U.byName);
     var pg = paginate_(rows, p.page);
     return { trainees: pg.data.map(function (t) { return { id: t.id, name: t.name, username: t.username, scores: scoresByTrainee[t.id] || {} }; }), meta: pg.meta,
       components: comps.map(function (c) { return { id: c.id, label: c.label, max_score: GradeCalc.fmt(GradeCalc.effMax(c, totals)), pass_score: GradeCalc.fmt(GradeCalc.effPass(c, totals)) }; }),
@@ -64,7 +67,8 @@ var Grades = {
   },
 
   show: function (ctx, p) {
-    var t = Grades.trainee_(p && p.id), isSelf = U.isActive(ctx.user) && ctx.user.id === t.id;
+    // A graduate cannot open the Grades page, even their own (their grades are on the dashboard).
+    var t = Grades.trainee_(p && p.id), isSelf = U.isActive(ctx.user) && ctx.user.id === t.id && !Authz.isGraduate(ctx.user);
     if (!isSelf && !Authz.allows(ctx.user, PERM.GRADES_VIEW_ALL)) forbidden_();
     var totals = GradeCalc.quizTotals(), records = Grades.recordsOf_(t.id), users = Repo.index('users', 'id');
     var rows = GradeCalc.components().map(function (c) {
@@ -101,7 +105,7 @@ var Grades = {
 /** Shared write path used by manual grading and quiz review. Caller already holds the lock and authorization. */
 var GradeWriter = {
   save: function (actor, trainee, comp, score, reason) {
-    if (trainee.role !== ROLE.TRAINEE) invalid_('score', 'Grades can only be recorded for trainees.');
+    if (trainee.role !== ROLE.TRAINEE && trainee.role !== ROLE.GRADUATE) invalid_('score', 'Grades can only be recorded for trainees.');
     if (!comp.active) invalid_('score', 'This grading component is no longer active.');
     var rec = Repo.first('grade_records', function (r) { return r.trainee_id === trainee.id && r.component_id === comp.id; });
     var old = rec ? rec.score : null, nu = U.round2(score);

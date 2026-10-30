@@ -4,13 +4,32 @@
  */
 var APP_NAME = 'Army Medical School';
 
+/**
+ * Role keys are what is stored in the Users sheet, so existing keys are kept and only their labels change:
+ *   logistic_officer -> shown as "Administrator Clerk"
+ *   instructor       -> shown as "Medical Instructor"
+ *   trainee          -> shown as "Medical Trainee"
+ * New keys: dean, deputy_dean, head_admin_clerk, graduate.
+ */
 var ROLE = {
-  ADMIN: 'admin', HEAD_INSTRUCTOR: 'head_instructor', INSTRUCTOR: 'instructor',
-  LOGISTIC_OFFICER: 'logistic_officer', TRAINEE: 'trainee'
+  ADMIN: 'admin', DEAN: 'dean', DEPUTY_DEAN: 'deputy_dean',
+  HEAD_ADMIN_CLERK: 'head_admin_clerk', HEAD_INSTRUCTOR: 'head_instructor',
+  LOGISTIC_OFFICER: 'logistic_officer',
+  INSTRUCTOR: 'instructor',
+  GRADUATE: 'graduate',
+  TRAINEE: 'trainee'
 };
+/** Key order here is the order of the role dropdowns (top to bottom). */
 var ROLE_LABELS = {
-  admin: 'Admin', head_instructor: 'Head Instructor', instructor: 'Instructor',
-  logistic_officer: 'Logistic Officer', trainee: 'Trainee'
+  admin: 'Admin',
+  dean: 'Dean of Medicine',
+  deputy_dean: 'Deputy Dean of Medicine',
+  head_admin_clerk: 'Head Administrator Clerk',
+  head_instructor: 'Head Instructor',
+  logistic_officer: 'Administrator Clerk',
+  instructor: 'Medical Instructor',
+  graduate: 'Graduate',
+  trainee: 'Medical Trainee'
 };
 var USER_STATUS = { ACTIVE: 'active', INACTIVE: 'inactive', SUSPENDED: 'suspended' };
 var CERT_STATUS = { PENDING: 'pending', ISSUED: 'issued', REVOKED: 'revoked' };
@@ -32,13 +51,18 @@ var PERM = {
 
 function permissionMatrix_() {
   var all = Object.keys(PERM).map(function (k) { return PERM[k]; });
+  var headInstructor = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.QUIZZES_MANAGE, PERM.VIOLATIONS_MANAGE,
+    PERM.PROGRESS_MANAGE, PERM.BATCHES_VIEW, PERM.ANNOUNCEMENTS_MANAGE];
   var m = {};
   m[ROLE.ADMIN] = all;
-  m[ROLE.HEAD_INSTRUCTOR] = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.QUIZZES_MANAGE, PERM.VIOLATIONS_MANAGE,
-    PERM.PROGRESS_MANAGE, PERM.BATCHES_VIEW, PERM.ANNOUNCEMENTS_MANAGE];
-  m[ROLE.INSTRUCTOR] = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.BATCHES_VIEW];
-  m[ROLE.LOGISTIC_OFFICER] = [PERM.GRADES_VIEW_ALL, PERM.VIOLATIONS_MANAGE, PERM.PROGRESS_MANAGE];
-  m[ROLE.TRAINEE] = [];
+  m[ROLE.DEAN] = all.slice();                       // same as admin
+  m[ROLE.DEPUTY_DEAN] = all.slice();                // same as admin
+  m[ROLE.HEAD_ADMIN_CLERK] = headInstructor.slice(); // same as head instructor
+  m[ROLE.HEAD_INSTRUCTOR] = headInstructor;
+  m[ROLE.LOGISTIC_OFFICER] = [PERM.GRADES_VIEW_ALL, PERM.VIOLATIONS_MANAGE, PERM.PROGRESS_MANAGE]; // Administrator Clerk
+  m[ROLE.INSTRUCTOR] = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.BATCHES_VIEW];              // Medical Instructor
+  m[ROLE.GRADUATE] = [];                            // dashboard only (own grades + certificate)
+  m[ROLE.TRAINEE] = [];                             // Medical Trainee
   return m;
 }
 var PERMISSION_MATRIX = permissionMatrix_();

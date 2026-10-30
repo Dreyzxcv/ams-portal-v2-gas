@@ -10,6 +10,9 @@ var Authz = {
   },
   require: function (user, perm) { if (!Authz.allows(user, perm)) forbidden_(); },
   isTrainee: function (u) { return !!u && u.role === ROLE.TRAINEE; },
-  isStaff: function (u) { return !!u && u.role !== ROLE.TRAINEE; },
+  isGraduate: function (u) { return !!u && u.role === ROLE.GRADUATE; },
+  /** Trainee or graduate: sees the personal (non-staff) dashboard. */
+  isLearner: function (u) { return !!u && (u.role === ROLE.TRAINEE || u.role === ROLE.GRADUATE); },
+  isStaff: function (u) { return !!u && !Authz.isLearner(u); },
   isSelf: function (a, b) { return !!a && !!b && a.id === b.id; }
 };
