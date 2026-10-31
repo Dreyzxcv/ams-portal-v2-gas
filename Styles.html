@@ -75,7 +75,6 @@ svg{flex:none}
 .sbw.collapsed .sbhead,.sbw.collapsed .sbfoot{padding:.25rem 0}.sbw.collapsed .sbcontent{padding:.5rem 0}.sbw.collapsed .nav{padding:0 .25rem}.sbw.collapsed .nav h4+ul{margin-top:0}
 .sbw.collapsed .nav a{width:2.5rem;padding:0;justify-content:center;margin:0 auto}.sbw.collapsed .sbbtn.lg{width:3rem;height:3rem;padding:.5rem;justify-content:center;margin:0 auto}
 .sbw.collapsed .menu{left:calc(100% + 8px);right:auto;bottom:0;width:14rem}
-/* mobile sheet */
 @media(max-width:767px){
   .sbgap{display:none}.sbw{display:block}.sidebar{width:18rem;transform:translateX(-100%);transition:transform .2s ease-in-out;box-shadow:var(--sh-lg)}.sidebar.open{transform:none}
   .sbscrim.open{display:block;position:fixed;inset:0;z-index:25;background:rgb(0 0 0/.5)}
@@ -267,4 +266,19 @@ svg.chart text{fill:var(--muted-foreground);font-size:10px}svg.chart .grid{strok
 .ghist{display:flex;gap:1rem;padding:1rem 1.25rem}.gico{display:flex;flex:none;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:.75rem;color:var(--g-fg);background:var(--g-bg)}.gico svg{width:1rem;height:1rem}
 .gdiff{margin-left:.5rem;font-size:12px;font-weight:500;color:var(--g-text)}.greason{margin:.5rem 0 0;border-radius:.75rem;padding:.5rem .75rem;font-size:14px;background:color-mix(in oklab,var(--muted) 60%,transparent)}
 .crumbs svg{flex:none}
+@media(max-width:640px){
+  .ghead{padding:1.25rem;gap:.75rem}
+  .ghead>.row,.ghead>form{width:100%}
+  .ghead form.row{flex-wrap:wrap!important;width:100%}
+  .ghead .gsearch{flex:1 1 12rem;min-width:0}
+  .ghead .gsearch input,.ghead input[type=search]{width:100%!important}
+  .ghead form.row .btn,.ghead>.row>.btn{flex:none}
+  .ghead select{max-width:100%}
+  .ghead h1{font-size:22px;line-height:28px}
+  .al-filters{align-items:stretch}
+  .al-filters .al-f{flex:1 1 9rem}
+  .al-filters .gsearch input{width:100%!important}
+  .al-filters input[type=date]{width:100%}
+  .gpager{flex-wrap:wrap;gap:.5rem}
+}
 </style>

@@ -201,7 +201,7 @@ route('/users', async (p, q, id) => {
     '<div class="row" style="gap:.5rem"><form data-form="userSearch" class="row" style="gap:.5rem" novalidate>' +
     '<div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:14rem" placeholder="Search name, username or email" value="' + h(q.search || '') + '" aria-label="Search users"></div>' +
     roleSel + statusSel +
-    '<button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Search</button></form>' +
+    '</form>' +
     '<a class="btn primary rx" href="#/users/create" data-go="/users/create">' + icon('plus') + 'New user</a></div></div>';
   const rows = d.users.length === 0
     ? '<tr><td colspan="5" class="muted center" style="padding:3rem 1.25rem">No users match these filters.</td></tr>'
@@ -296,7 +296,7 @@ route('/batches', async (p, q, id) => {
   loadingShell('/batches', '');
   const d = await A('batches.list', { search: q.search, page: q.page }); if (!current(id)) return;
   const head = '<div class="ghead"><div><h1>Batches</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Manage batches and their trainees</p></div><div class="row" style="gap:.5rem">' +
-    '<form data-form="batchSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:14rem" placeholder="Search batch name" value="' + h(q.search || '') + '" aria-label="Search batches"></div><button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Search</button></form>' +
+    '<form data-form="batchSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:14rem" placeholder="Search batch name" value="' + h(q.search || '') + '" aria-label="Search batches"></div></form>' +
     (d.can.create ? '<a class="btn primary rx" href="#/batches/create" data-go="/batches/create">' + icon('plus') + 'New batch</a>' : '') + '</div></div>';
   const rows = d.batches.length === 0 ? '<tr><td colspan="6" class="muted center" style="padding:3rem 1.25rem">No batches found.</td></tr>'
     : d.batches.map(b => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap">' + chipIcon('batch', 'violet', 'sm') + '<span style="font-weight:500">' + h(b.name) + '</span></div></td>' +
@@ -382,7 +382,7 @@ route('/grades', async (p, q, id) => {
   if (d.redirect) return go('/grades/' + d.redirect.id);
   const head = '<div class="ghead"><div><h1>Grades</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Trainee scores per phase and the final examination</p></div>' +
     '<div class="row" style="gap:1rem"><label class="check" style="font-size:14px;cursor:pointer"><input type="checkbox" data-grad-toggle' + (withGrads ? ' checked' : '') + '> Include graduates</label>' +
-    '<form data-form="gradeSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div><button class="btn primary rx" type="submit">Search</button></form></div></div>';
+    '<form data-form="gradeSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div></form></div></div>';
   const th = '<th style="padding-left:1.25rem">Trainee</th>' + d.components.map(c => '<th class="nowrap"><div style="color:var(--foreground)">' + h(c.label) + '</div><div style="font-weight:400">Out of ' + Number(c.max_score) + ', pass at ' + Number(c.pass_score) + '</div></th>').join('') + '<th style="padding-right:1.25rem"></th>';
   const rows = d.trainees.length === 0 ? '<tr><td colspan="' + (d.components.length + 2) + '" class="muted center" style="padding:3rem 1.25rem">No trainees found.</td></tr>'
     : d.trainees.map(t => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(t.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + (t.role === 'graduate' ? ' <span class="statusbadge t-violet" style="margin-left:.25rem">Graduate</span>' : '') + '</div><div class="muted" style="font-size:12px">@' + h(t.username) + '</div></div></div></td>' +
@@ -462,7 +462,7 @@ route('/violations', async (p, q, id) => {
   const d = await A('violations.list', { search: q.search, page: q.page }); if (!current(id)) return;
   const mgr = d.can.create;
   const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap">' + vTile() + '<div><h1>Violations</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Recorded violations and who issued them</p></div></div>' +
-    (mgr ? '<div class="row" style="gap:.5rem"><form data-form="violationSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:16rem" placeholder="Search trainee name or username" value="' + h(q.search || '') + '" aria-label="Search violations"></div><button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Search</button></form>' +
+    (mgr ? '<div class="row" style="gap:.5rem"><form data-form="violationSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:16rem" placeholder="Search trainee name or username" value="' + h(q.search || '') + '" aria-label="Search violations"></div></form>' +
       '<a class="btn primary rx" href="#/violations/create" data-go="/violations/create">' + icon('plus') + 'New violation</a></div>' : '') + '</div>';
   const rows = d.violations.length === 0 ? '<tr><td colspan="5" class="muted center" style="padding:3rem 1.25rem">No violations found.</td></tr>'
     : d.violations.map(v => '<tr style="vertical-align:top"><td class="nowrap" style="padding-left:1.25rem"><span class="gs-fail" style="display:inline-flex;border-radius:9999px;padding:.25rem .625rem;font-size:12px;font-weight:500;background:var(--g-bg);color:var(--g-fg)">' + h(v.occurred_on) + '</span></td>' +
@@ -516,7 +516,7 @@ route('/progress', async (p, q, id) => {
   if (d.redirect) return go('/dashboard');
   const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap"><span class="chipicon t-teal" aria-hidden="true" style="width:3.5rem;height:3.5rem;border-radius:1rem;background:color-mix(in oklab,var(--teal-500) 15%,transparent)">' + bIcon('hourglass', 24) + '</span>' +
     '<div><h1>Progress</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Current phase (1 to ' + h(d.max_phase) + ') and days left based on each trainee’s batch end date</p></div></div>' +
-    '<form data-form="progressSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:16rem" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div><button class="btn primary rx" type="submit">Search</button></form></div>';
+    '<form data-form="progressSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:16rem" placeholder="Search name or username" value="' + h(q.search || '') + '" aria-label="Search trainees"></div></form></div>';
   const rows = d.trainees.length === 0 ? '<tr><td colspan="6" class="muted center" style="padding:3rem 1.25rem">No trainees found.</td></tr>'
     : d.trainees.map(t => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(t.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(t.name) + '</div><div class="muted" style="font-size:12px">@' + h(t.username) + '</div></div></div></td>' +
       '<td>' + (t.current_phase !== null && t.current_phase !== undefined ? pPill('background:color-mix(in oklab,var(--sky-500) 10%,transparent);color:var(--info-fg)', t.current_phase) : pPill('background:var(--muted);color:var(--muted-foreground)', 'Not set')) + '</td>' +

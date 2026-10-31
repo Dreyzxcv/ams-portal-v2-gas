@@ -272,7 +272,7 @@ async function go(path, replace, silent) {
   finally { if (id === State.navId) State.silent = false; }
 }
 const current = id => id === State.navId;
-function setQuery(upd) { const q = Object.assign({}, State.q, upd); Object.keys(upd).forEach(k => { if (upd[k] === '' || upd[k] === null) delete q[k]; }); if (!('page' in upd)) delete q.page; go(State.path + qs(q)); }
+function setQuery(upd) { const q = Object.assign({}, State.q, upd); Object.keys(upd).forEach(k => { if (upd[k] === '' || upd[k] === null) delete q[k]; }); if (!('page' in upd)) delete q.page; return go(State.path + qs(q), false, true); }
 
 /* ---------- layout ---------- */
 function navItems() {
@@ -340,7 +340,19 @@ document.addEventListener('submit', e => {
 });
 let searchTimer = null;
 document.addEventListener('input', e => {
-  if (e.target.matches('[data-search]')) { clearTimeout(searchTimer); const v = e.target.value; searchTimer = setTimeout(() => setQuery({ search: v.trim() }), 350); }
+  const t = e.target;
+  if (!t.matches || !t.matches('input[type=search][name=search], input[data-search]')) return;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const val = t.value, term = val.trim();
+    if (term === (State.q.search || '')) return;
+    await setQuery({ search: term });
+    const n = $('input[type=search][name=search], input[data-search]');
+    if (n) {
+      n.value = t.isConnected ? n.value : val;   // keep anything typed while loading
+      n.focus(); const L = n.value.length; try { n.setSelectionRange(L, L); } catch (err) { /* ignore */ }
+    }
+  }, 300);
 });
 document.addEventListener('change', e => { if (e.target.matches('[data-filter]')) setQuery({ [e.target.dataset.filter]: e.target.value }); });
 Actions.page = el => setQuery({ page: el.dataset.page });

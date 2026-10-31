@@ -18,7 +18,7 @@ var ROLE = {
   INSTRUCTOR: 'instructor',
   GRADUATE: 'graduate',
   TRAINEE: 'trainee'
-};
+};  
 /** Key order here is the order of the role dropdowns (top to bottom). */
 var ROLE_LABELS = {
   admin: 'Admin',
@@ -43,7 +43,7 @@ var INTAKE_MESSAGES = {
 
 var PERM = {
   USERS_MANAGE: 'users.manage', GRADES_VIEW_ALL: 'grades.view_all', GRADES_MANAGE: 'grades.manage',
-  QUIZZES_MANAGE: 'quizzes.manage', QUIZ_ACCESS: 'quizzes.access', QUIZZES_RESET_ATTEMPTS: 'quizzes.reset_attempts',
+  QUIZZES_MANAGE: 'quizzes.manage', QUIZZES_ACCESS: 'quizzes.access', QUIZZES_RESET_ATTEMPTS: 'quizzes.reset_attempts',
   VIOLATIONS_MANAGE: 'violations.manage', PROGRESS_MANAGE: 'progress.manage',
   BATCHES_VIEW: 'batches.view', BATCHES_MANAGE: 'batches.manage',
   CERTIFICATES_MANAGE: 'certificates.manage', CHAIN_MANAGE: 'chain.manage',
@@ -61,8 +61,8 @@ function permissionMatrix_() {
   m[ROLE.ACADEMY_COUNCELOR] = all.slice();
   m[ROLE.HEAD_ADMIN_CLERK] = headInstructor.slice(); // same as head instructor
   m[ROLE.HEAD_INSTRUCTOR] = headInstructor;
-  m[ROLE.LOGISTIC_OFFICER] = [PERM.GRADES_VIEW_ALL, PERM.VIOLATIONS_MANAGE, PERM.PROGRESS_MANAGE, PERM.QUIZ_ACCESS]; // Administrator Clerk
-  m[ROLE.INSTRUCTOR] = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.QUIZ_ACCESS, PERM.BATCHES_VIEW];              // Medical Instructor
+  m[ROLE.LOGISTIC_OFFICER] = [PERM.GRADES_VIEW_ALL, PERM.VIOLATIONS_MANAGE, PERM.PROGRESS_MANAGE, PERM.QUIZZES_ACCESS]; // Administrator Clerk
+  m[ROLE.INSTRUCTOR] = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.QUIZZES_ACCESS, PERM.BATCHES_VIEW];              // Medical Instructor
   m[ROLE.GRADUATE] = [];                            // dashboard only (own grades + certificate)
   m[ROLE.TRAINEE] = [];                             // Medical Trainee
   return m;
