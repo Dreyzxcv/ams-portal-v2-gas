@@ -1,6 +1,12 @@
 /**
  * QuizService.gs - timed quizzes (QuizController/QuizAttemptController/QuizReviewController/QuizService/QuizPolicy).
  * Quiz mutations run inside the script lock (API router) which replaces the row locks used in PostgreSQL.
+ *
+ * Access model:
+ * - Staff grant access so a trainee can START the quiz.
+ * - When the attempt is submitted (manual submit, timeout, or the 5-minute trigger job), access is revoked
+ *   automatically (see submitLocked_). The quiz stays visible in the trainee's list because it is also built
+ *   from the trainee's submitted attempts. A submitted attempt lets the trainee view status/score without access.
  */
 var Quizzes = {
   mustFind_: function (id) {
@@ -29,8 +35,17 @@ var Quizzes = {
   /** Can open the staff quiz list/detail and grant or revoke trainee access (but not create or edit quizzes). */
   canView_: function (u) { return Authz.allows(u, PERM.QUIZZES_MANAGE) || Authz.allows(u, PERM.QUIZZES_ACCESS); },
   ensureViewer_: function (u) { if (!Quizzes.canView_(u)) forbidden_(); },
+  /** Strict: active trainee with an ACTIVE access row. Needed to start a quiz and to work on an unsubmitted attempt. */
   hasAccess_: function (u, quiz) { return U.isActive(u) && u.role === ROLE.TRAINEE && !!Quizzes.activeAccess_(quiz.id, u.id); },
   ensureAccess_: function (u, quiz) { if (!Quizzes.hasAccess_(u, quiz)) forbidden_(); },
+  /** Lenient: strict access OR the trainee already has a submitted attempt (read-only status/score page). */
+  hasViewAccess_: function (u, quiz) {
+    if (!(U.isActive(u) && u.role === ROLE.TRAINEE)) return false;
+    if (Quizzes.activeAccess_(quiz.id, u.id)) return true;
+    var at = Quizzes.attemptOf_(quiz.id, u.id);
+    return !!(at && at.submitted_at);
+  },
+  ensureViewAccess_: function (u, quiz) { if (!Quizzes.hasViewAccess_(u, quiz)) forbidden_(); },
   isSubmitted_: function (a) { return !!a.submitted_at; },
   isReviewed_: function (a) { return !!a.reviewed_at; },
   attemptStatus_: function (a) {
@@ -60,9 +75,15 @@ var Quizzes = {
       return { mode: 'manage', quizzes: quizzes, can_create: Quizzes.canManage_(u) && Quizzes.eligible_().some(function (c) { return !have[c.key]; }) };
     }
     if (U.isActive(u) && u.role === ROLE.TRAINEE) {
-      var out = [], now = U.nowIso();
-      Repo.where('quiz_accesses', function (a) { return a.trainee_id === u.id && !a.revoked_at; }).forEach(function (acc) {
-        var q = Repo.find('quizzes', acc.quiz_id); if (!q) return;
+      var out = [], now = U.nowIso(), ids = {};
+      // 1) quizzes the trainee currently has access to
+      Repo.where('quiz_accesses', function (a) { return a.trainee_id === u.id && !a.revoked_at; }).forEach(function (acc) { ids[acc.quiz_id] = true; });
+      // 2) quizzes the trainee already finished (access is auto-revoked on submit, but they must stay listed).
+      //    An in-progress attempt whose time ran out counts as finished too (it is auto-submitted on next open).
+      Repo.where('quiz_attempts', function (a) { return a.trainee_id === u.id && (a.submitted_at || a.expires_at <= now); })
+        .forEach(function (a) { ids[a.quiz_id] = true; });
+      Object.keys(ids).forEach(function (quizId) {
+        var q = Repo.find('quizzes', quizId); if (!q) return;
         var at = Quizzes.attemptOf_(q.id, u.id), st = Quizzes.attemptStatus_(at);
         if (st === 'in_progress' && at.expires_at <= now) st = 'submitted';
         out.push({ id: q.id, title: q.title, phase: comps[q.grade_component_key] ? comps[q.grade_component_key].label : '', duration_minutes: q.duration_minutes,
@@ -93,7 +114,7 @@ var Quizzes = {
   show: function (ctx, p) {
     var quiz = Quizzes.mustFind_(p && p.id), u = ctx.user;
     if (!Quizzes.canView_(u)) {
-      Quizzes.ensureAccess_(u, quiz);
+      Quizzes.ensureViewAccess_(u, quiz);
       return Quizzes.take(ctx, p);
     }
     var users = Repo.index('users', 'id'), comp = Quizzes.componentOf_(quiz.grade_component_key);
@@ -107,7 +128,9 @@ var Quizzes = {
         submitted_at: a.submitted_at, auto_score: a.auto_score, manual_score: a.manual_score, final_score: a.final_score, reviewed_by: rv ? rv.name : null };
     }).sort(function (a, b) { return U.cmp(U.lower(a.name), U.lower(b.name)); });
     var granted = {}; accesses.forEach(function (a) { if (!a.revoked_at) granted[a.trainee_id] = true; });
-    var available = Users.live_().filter(function (t) { return t.role === ROLE.TRAINEE && t.status === USER_STATUS.ACTIVE && !granted[t.id]; })
+    // Trainees who already used their attempt cannot start again, so they are not offered in the grant picker.
+    var attempted = {}; attempts.forEach(function (a) { attempted[a.trainee_id] = true; });
+    var available = Users.live_().filter(function (t) { return t.role === ROLE.TRAINEE && t.status === USER_STATUS.ACTIVE && !granted[t.id] && !attempted[t.id]; })
       .sort(U.byName).slice(0, 500).map(function (t) { return { id: t.id, name: t.name, username: t.username }; });
     return { quiz: { id: quiz.id, title: quiz.title, instructions: quiz.instructions, duration_minutes: quiz.duration_minutes, phase_key: quiz.grade_component_key,
       phase: comp ? comp.label : quiz.grade_component_key, total_points: Quizzes.totalPoints_(quiz.id) },
@@ -254,9 +277,11 @@ var Quizzes = {
   /* ---------- trainee attempt lifecycle ---------- */
   take: function (ctx, p) {
     var quiz = Quizzes.mustFind_(p && p.id), u = ctx.user;
-    Quizzes.ensureAccess_(u, quiz);
+    Quizzes.ensureViewAccess_(u, quiz);
     var at = Quizzes.attemptOf_(quiz.id, u.id);
+    // Working on an unsubmitted attempt still needs live access (staff can revoke mid-quiz on purpose).
     if (at && !at.submitted_at) {
+      Quizzes.ensureAccess_(u, quiz);
       if (U.nowIso() >= at.expires_at) Quizzes.submitLocked_(at); else return { redirect: { page: 'quizzes/attempt', id: at.id } };
       at = Repo.find('quiz_attempts', at.id);
     }
@@ -276,8 +301,11 @@ var Quizzes = {
   },
   attempt: function (ctx, p) {
     var at = Quizzes.mustFindAttempt_(p && p.id), quiz = Repo.find('quizzes', at.quiz_id);
-    Quizzes.ensureAccess_(ctx.user, quiz);
     if (at.trainee_id !== ctx.user.id) forbidden_();
+    // Access is auto-revoked on submit, so only an unsubmitted attempt needs live access.
+    // A submitted attempt can always be viewed by its owner (status / score page).
+    if (!at.submitted_at) Quizzes.ensureAccess_(ctx.user, quiz);
+    else if (!(U.isActive(ctx.user) && ctx.user.role === ROLE.TRAINEE)) forbidden_();
     if (!at.submitted_at && U.nowIso() >= at.expires_at) { Quizzes.submitLocked_(at); at = Repo.find('quiz_attempts', at.id); }
     var comp = Quizzes.componentOf_(quiz.grade_component_key);
     if (at.submitted_at) {
@@ -343,8 +371,9 @@ var Quizzes = {
     var at = Quizzes.mustFindAttempt_(p && p.id);
     if (at.trainee_id !== ctx.user.id) forbidden_();
     var v = validate_(p, { event: { required: true, type: 'enum', 'in': QUIZ_EVENTS }, client_time: { max: 64 } });
-    Quizzes.ensureAccess_(ctx.user, Repo.find('quizzes', at.quiz_id));
+    // Late events after submit are ignored quietly (access is already auto-revoked at that point).
     if (at.submitted_at || U.nowIso() >= at.expires_at) return {};
+    Quizzes.ensureAccess_(ctx.user, Repo.find('quizzes', at.quiz_id));
     Audit.record('quiz.' + v.event, ctx.user, 'quiz_attempt', at.id, { quiz_id: at.quiz_id, client_time: v.client_time });
     return {};
   },
@@ -365,6 +394,13 @@ var Quizzes = {
     var submittedAt = now > at.expires_at ? at.expires_at : now;
     Repo.update('quiz_attempts', at.id, { submitted_at: submittedAt, auto_score: U.round2(auto) });
     Audit.record('quiz.attempt_submitted', trainee, 'quiz_attempt', at.id, { automatic_score: U.round2(auto), timed_out: submittedAt === at.expires_at });
+    // Auto-revoke access now that the attempt is finished. The quiz stays in the trainee's list because
+    // the list is also built from submitted attempts. Runs for manual submit, timeout and the trigger job.
+    var acc = Quizzes.activeAccess_(quiz.id, at.trainee_id);
+    if (acc) {
+      Repo.update('quiz_accesses', acc.id, { revoked_at: U.nowIso() });
+      Audit.record('quiz.access_revoked', trainee, 'quiz', quiz.id, { trainee_id: at.trainee_id, reason: 'attempt_submitted' });
+    }
   },
   /** Scheduled job: finalize attempts whose time ran out. */
   submitExpired: function () {

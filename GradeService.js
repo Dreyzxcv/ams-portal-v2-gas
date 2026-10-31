@@ -51,6 +51,46 @@ var Grades = {
     return t;
   },
 
+  /**
+   * Quiz lock: a quiz-based component (Phase 1 / Final Exam) that HAS a quiz can only get its FIRST score through
+   * the quiz review (Quizzes.reviewSave -> GradeWriter.save, which does not pass through here).
+   * Returns a message when manual entry is locked, else null.
+   * Not locked when: the component has no quiz (manual source), the trainee is a graduate (graduates cannot take quizzes),
+   * or a score already exists (editing an existing score needs a reason, as before).
+   */
+  quizLock_: function (trainee, comp, rec) {
+    if (QUIZ_KEYS.indexOf(comp.key) === -1) return null;
+    if (trainee.role !== ROLE.TRAINEE) return null;
+    var quiz = Repo.first('quizzes', function (q) { return q.grade_component_key === comp.key; });
+    if (!quiz || !(Quizzes.totalPoints_(quiz.id) > 0)) return null;
+    if (rec && rec.score !== null && rec.score !== undefined) return null;
+    var at = Quizzes.attemptOf_(quiz.id, trainee.id);
+    if (at && at.submitted_at) return 'Review the submitted quiz attempt on the Quizzes page to record this grade.';
+    return 'This grade is recorded through the quiz. The trainee has not submitted it yet.';
+  },
+
+  /**
+   * Sequential lock: a score can only be entered for a component when every earlier component (by sequence) already has a score.
+   * Example: no Phase 1 score means Phase 2 to Final Examination are locked.
+   * Not locked for graduates, and not locked when the component already has a score (editing needs a reason, as before).
+   */
+  sequenceLock_: function (trainee, comp, rec, comps, records) {
+    if (trainee.role !== ROLE.TRAINEE) return null;
+    if (rec && rec.score !== null && rec.score !== undefined) return null;
+    comps = comps || GradeCalc.components();
+    records = records || Grades.recordsOf_(trainee.id);
+    for (var i = 0; i < comps.length; i++) {
+      if (comps[i].id === comp.id) return null;
+      var r = records[comps[i].id];
+      if (!r || r.score === null || r.score === undefined) return 'Record the score for "' + comps[i].label + '" first.';
+    }
+    return null;
+  },
+  /** Combined lock: sequence first, then the quiz rule. Returns a message or null. */
+  lock_: function (trainee, comp, rec, comps, records) {
+    return Grades.sequenceLock_(trainee, comp, rec, comps, records) || Grades.quizLock_(trainee, comp, rec);
+  },
+
   index: function (ctx, p) {
     // Graduates only see their grades on their dashboard, not on the Grades pages.
     if (Authz.isGraduate(ctx.user)) forbidden_();
@@ -75,11 +115,13 @@ var Grades = {
     var t = Grades.trainee_(p && p.id), isSelf = U.isActive(ctx.user) && ctx.user.id === t.id && !Authz.isGraduate(ctx.user);
     if (!isSelf && !Authz.allows(ctx.user, PERM.GRADES_VIEW_ALL)) forbidden_();
     var totals = GradeCalc.quizTotals(), records = Grades.recordsOf_(t.id), users = Repo.index('users', 'id');
-    var rows = GradeCalc.components().map(function (c) {
+    var allComps = GradeCalc.components();
+    var rows = allComps.map(function (c) {
       var r = records[c.id], score = r ? r.score : null;
       return { component_id: c.id, label: c.label, max_score: GradeCalc.fmt(GradeCalc.effMax(c, totals)), pass_score: GradeCalc.fmt(GradeCalc.effPass(c, totals)),
         is_final: c.is_final, score: score === null ? null : GradeCalc.fmt(score), passed: score === null ? null : GradeCalc.isPassing(c, score, totals),
-        graded_by: r && r.graded_by && users[r.graded_by] ? users[r.graded_by].name : null, graded_at: r ? r.graded_at : null };
+        graded_by: r && r.graded_by && users[r.graded_by] ? users[r.graded_by].name : null, graded_at: r ? r.graded_at : null,
+        quiz_locked: Grades.lock_(t, c, r, allComps, records) };
     });
     var recById = {}; Object.keys(records).forEach(function (k) { recById[records[k].id] = records[k]; });
     var comps = Repo.index('grade_components', 'id');
@@ -99,6 +141,11 @@ var Grades = {
     if (Authz.isSelf(ctx.user, t)) forbidden_('You cannot grade yourself.');
     var comp = Repo.find('grade_components', p && p.component_id);
     if (!comp) notFound_('Component not found.');
+    // Enforced here (not only in the UI): earlier components must be graded first, and the first score of a
+    // quiz-based component must come from the quiz review.
+    var existing = Repo.first('grade_records', function (r) { return r.trainee_id === t.id && r.component_id === comp.id; });
+    var lock = Grades.lock_(t, comp, existing);
+    if (lock) invalid_('score', lock);
     var max = GradeCalc.effMax(comp);
     var v = validate_(p, { score: { required: true, type: 'num', min: 0, max: max, decimals: 2, maxMsg: 'The score cannot be higher than the maximum for this component.' }, reason: { max: 500 } });
     GradeWriter.save(ctx.user, t, comp, v.score, v.reason);

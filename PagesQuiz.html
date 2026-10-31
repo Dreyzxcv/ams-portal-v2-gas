@@ -73,7 +73,7 @@
 .qx-qtop{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:.75rem}.qx-qtop h2{font-size:16px;font-weight:500;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 .qx-ans{list-style:none;margin:.75rem 0 0;padding:0;display:grid;gap:.5rem;font-size:14px}
 .qx-ans li{border:1px solid var(--border);border-radius:.75rem;padding:.5rem .75rem;overflow-wrap:anywhere}
-.qx-ans li.right{border-color:color-mix(in oklab,var(--emerald-500) 40%,transparent);background:color-mix(in oklab,var(--emerald-500) 10%,transparent)}
+.qx-ans li.right-answer{border-color:color-mix(in oklab,var(--emerald-500) 40%,transparent);background:color-mix(in oklab,var(--emerald-500) 10%,transparent)}
 .qx-ans li.wrong{border-color:color-mix(in oklab,var(--rose-500) 40%,transparent);background:color-mix(in oklab,var(--rose-500) 10%,transparent)}
 .qx-resp{min-height:5rem;border-radius:.75rem;background:color-mix(in oklab,var(--muted) 50%,transparent);padding:.75rem;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:.75rem 0}
 .qx-sum{display:flex;flex-wrap:wrap;gap:1.5rem;font-size:14px}.qx-sum p{margin:0}.qx-sum b{font-weight:600;font-variant-numeric:tabular-nums}
@@ -202,7 +202,7 @@ route('/quizzes/:qid/review/:aid', async (p, q, id) => {
   const a = d.attempt, editable = a.status === 'submitted', total = d.quiz.total_points;
   const mc = d.questions.filter(x => x.type === 'multiple_choice'), para = d.questions.filter(x => x.type === 'paragraph');
   const mcHtml = mc.map(qq => `<section class="qx-card qx-pad"><div class="qx-qtop"><h2>${qq.position}. ${h(qq.prompt)}</h2><span class="muted" style="font-variant-numeric:tabular-nums">${num(qq.auto_score || 0)} / ${num(qq.points)}</span></div><ul class="qx-ans">` +
-    qq.options.map((o, j) => `<li class="${j === qq.correct_option ? 'right' : j === qq.selected_option ? 'wrong' : ''}">${h(o)}${j === qq.selected_option ? ' · trainee answer' : ''}${j === qq.correct_option ? ' · correct answer' : ''}</li>`).join('') + `</ul></section>`).join('');
+    qq.options.map((o, j) => `<li class="${j === qq.correct_option ? 'right-answer' : j === qq.selected_option ? 'wrong' : ''}">${h(o)}${j === qq.selected_option ? ' · trainee answer' : ''}${j === qq.correct_option ? ' · correct answer' : ''}</li>`).join('') + `</ul></section>`).join('');
   const paraHtml = para.map(qq => `<section class="qx-card qx-pad"><div class="qx-qtop"><h2>${qq.position}. ${h(qq.prompt)}</h2><span class="muted">Up to ${num(qq.points)} points</span></div>` +
     `<p class="qx-resp">${qq.answer_text ? h(qq.answer_text) : 'No response provided.'}</p>` +
     (editable ? `<div class="field" style="max-width:20rem"><label for="ms-${h(qq.id)}">Instructor score</label><input type="number" id="ms-${h(qq.id)}" data-score data-qid="${h(qq.id)}" min="0" max="${h(qq.points)}" step="0.01" value="" required></div>`

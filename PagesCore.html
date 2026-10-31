@@ -407,10 +407,11 @@ function gradeCard(r) {
     '<div><div class="gbar" role="progressbar" aria-label="' + h(r.label) + ' score" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + score + '"><i style="width:' + pct + '%"></i><span style="left:calc(' + passPct + '% - 1px)"></span></div><div class="muted" style="margin-top:.375rem;font-size:12px;font-variant-numeric:tabular-nums">Passing: ' + pass + '/' + max + '</div></div></div></div>';
 }
 function gradeEditRow(r, tid) {
-  const max = Number(r.max_score), has = r.score !== null && r.score !== undefined;
-  return '<form class="gedit" data-form="gradeSave" data-tid="' + h(tid) + '" data-cid="' + h(r.component_id) + '" novalidate><div class="lab"><label for="score-' + h(r.component_id) + '" style="font-size:14px;font-weight:500">' + h(r.label) + '</label><div class="muted" style="font-size:12px">Pass at ' + Number(r.pass_score) + ' of ' + max + '</div></div>' +
-    '<div><input class="rx" id="score-' + h(r.component_id) + '" name="score" type="number" inputmode="decimal" step="0.01" min="0" max="' + max + '" value="' + (has ? Number(r.score) : '') + '" placeholder="0 – ' + max + '" aria-label="' + h(r.label) + ' score" required style="font-variant-numeric:tabular-nums"></div>' +
-    '<div><input class="rx" type="text" name="reason" maxlength="500" placeholder="' + (has ? 'Reason for change (required)' : 'Note (optional)') + '" autocomplete="off" aria-label="' + h(r.label) + ' reason"></div>' +
+  const max = Number(r.max_score), has = r.score !== null && r.score !== undefined, locked = !!r.quiz_locked, off = locked ? ' disabled' : '';
+  return '<form class="gedit" data-form="gradeSave" data-tid="' + h(tid) + '" data-cid="' + h(r.component_id) + '" novalidate><div class="lab"><label for="score-' + h(r.component_id) + '" style="font-size:14px;font-weight:500">' + h(r.label) + '</label><div class="muted" style="font-size:12px">Pass at ' + Number(r.pass_score) + ' of ' + max + '</div>' +
+    (locked ? '<div class="muted" style="font-size:12px;margin-top:.25rem">' + h(r.quiz_locked) + '</div>' : '') + '</div>' +
+    '<div><input class="rx" id="score-' + h(r.component_id) + '" name="score" type="number" inputmode="decimal" step="0.01" min="0" max="' + max + '" value="' + (has ? Number(r.score) : '') + '" placeholder="' + (locked ? 'Graded through the quiz' : '0 – ' + max) + '" aria-label="' + h(r.label) + ' score" required style="font-variant-numeric:tabular-nums"' + off + '></div>' +
+    '<div><input class="rx" type="text" name="reason" maxlength="500" placeholder="' + (has ? 'Reason for change (required)' : 'Note (optional)') + '" autocomplete="off" aria-label="' + h(r.label) + ' reason"' + off + '></div>' +
     '<div class="row" style="gap:.5rem"><button class="btn sm primary rx" type="submit" disabled>Save</button></div></form>';
 }
 function historyItem(r, max) {
