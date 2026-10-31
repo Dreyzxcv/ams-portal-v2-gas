@@ -12,7 +12,7 @@ var APP_NAME = 'Army Medical School';
  * New keys: dean, deputy_dean, head_admin_clerk, graduate.
  */
 var ROLE = {
-  ADMIN: 'admin', DEAN: 'dean', DEPUTY_DEAN: 'deputy_dean',
+  ADMIN: 'admin', DEAN: 'dean', DEPUTY_DEAN: 'deputy_dean', ACADEMY_COUNCELOR: 'academy_councelor',
   HEAD_ADMIN_CLERK: 'head_admin_clerk', HEAD_INSTRUCTOR: 'head_instructor',
   LOGISTIC_OFFICER: 'logistic_officer',
   INSTRUCTOR: 'instructor',
@@ -24,6 +24,7 @@ var ROLE_LABELS = {
   admin: 'Admin',
   dean: 'Dean of Medicine',
   deputy_dean: 'Deputy Dean of Medicine',
+  academy_councelor: 'Academy Councelor',
   head_admin_clerk: 'Head Administrative Clerk',
   head_instructor: 'Head Instructor',
   logistic_officer: 'Administrative Clerk',
@@ -42,7 +43,7 @@ var INTAKE_MESSAGES = {
 
 var PERM = {
   USERS_MANAGE: 'users.manage', GRADES_VIEW_ALL: 'grades.view_all', GRADES_MANAGE: 'grades.manage',
-  QUIZZES_MANAGE: 'quizzes.manage', QUIZZES_RESET_ATTEMPTS: 'quizzes.reset_attempts',
+  QUIZZES_MANAGE: 'quizzes.manage', QUIZ_ACCESS: 'quizzes.access', QUIZZES_RESET_ATTEMPTS: 'quizzes.reset_attempts',
   VIOLATIONS_MANAGE: 'violations.manage', PROGRESS_MANAGE: 'progress.manage',
   BATCHES_VIEW: 'batches.view', BATCHES_MANAGE: 'batches.manage',
   CERTIFICATES_MANAGE: 'certificates.manage', CHAIN_MANAGE: 'chain.manage',
@@ -57,10 +58,11 @@ function permissionMatrix_() {
   m[ROLE.ADMIN] = all;
   m[ROLE.DEAN] = all.slice();                       // same as admin
   m[ROLE.DEPUTY_DEAN] = all.slice();                // same as admin
+  m[ROLE.ACADEMY_COUNCELOR] = all.slice();
   m[ROLE.HEAD_ADMIN_CLERK] = headInstructor.slice(); // same as head instructor
   m[ROLE.HEAD_INSTRUCTOR] = headInstructor;
-  m[ROLE.LOGISTIC_OFFICER] = [PERM.GRADES_VIEW_ALL, PERM.VIOLATIONS_MANAGE, PERM.PROGRESS_MANAGE]; // Administrator Clerk
-  m[ROLE.INSTRUCTOR] = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.BATCHES_VIEW];              // Medical Instructor
+  m[ROLE.LOGISTIC_OFFICER] = [PERM.GRADES_VIEW_ALL, PERM.VIOLATIONS_MANAGE, PERM.PROGRESS_MANAGE, PERM.QUIZ_ACCESS]; // Administrator Clerk
+  m[ROLE.INSTRUCTOR] = [PERM.GRADES_VIEW_ALL, PERM.GRADES_MANAGE, PERM.QUIZ_ACCESS, PERM.BATCHES_VIEW];              // Medical Instructor
   m[ROLE.GRADUATE] = [];                            // dashboard only (own grades + certificate)
   m[ROLE.TRAINEE] = [];                             // Medical Trainee
   return m;

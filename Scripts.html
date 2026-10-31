@@ -281,7 +281,7 @@ function navItems() {
     { label: 'Overview', items: [{ t: 'Dashboard', to: '/dashboard', i: 'dashboard' }] },
     { label: 'Academics', items: [
       can('batches.view') && { t: 'Batches', to: '/batches', i: 'batch' }, !isGraduate() && { t: 'Grades', to: '/grades', i: 'grades' },
-      (can('quizzes.manage') || t) && { t: 'Quizzes', to: '/quizzes', i: 'quiz' }, can('progress.manage') && { t: 'Progress', to: '/progress', i: 'progress' }] },
+      (can('quizzes.manage') || can('quizzes.access') || t) && { t: 'Quizzes', to: '/quizzes', i: 'quiz' }, can('progress.manage') && { t: 'Progress', to: '/progress', i: 'progress' }] },
     { label: 'Records', items: [(can('violations.manage') || t) && { t: 'Violations', to: '/violations', i: 'violation' }] },
     { label: 'Administration', items: [
       can('announcements.manage') && { t: 'Announcements', to: '/announcements', i: 'announce' }, can('certificates.manage') && { t: 'Certificates', to: '/certificates', i: 'cert' },

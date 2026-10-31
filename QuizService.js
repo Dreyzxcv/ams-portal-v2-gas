@@ -26,6 +26,9 @@ var Quizzes = {
   },
   canManage_: function (u) { return Authz.allows(u, PERM.QUIZZES_MANAGE); },
   ensureManager_: function (u) { if (!Quizzes.canManage_(u)) forbidden_(); },
+  /** Can open the staff quiz list/detail and grant or revoke trainee access (but not create or edit quizzes). */
+  canView_: function (u) { return Authz.allows(u, PERM.QUIZZES_MANAGE) || Authz.allows(u, PERM.QUIZZES_ACCESS); },
+  ensureViewer_: function (u) { if (!Quizzes.canView_(u)) forbidden_(); },
   hasAccess_: function (u, quiz) { return U.isActive(u) && u.role === ROLE.TRAINEE && !!Quizzes.activeAccess_(quiz.id, u.id); },
   ensureAccess_: function (u, quiz) { if (!Quizzes.hasAccess_(u, quiz)) forbidden_(); },
   isSubmitted_: function (a) { return !!a.submitted_at; },
@@ -40,7 +43,7 @@ var Quizzes = {
   /* ---------- queries ---------- */
   list: function (ctx) {
     var u = ctx.user, comps = Repo.index('grade_components', 'key');
-    if (Quizzes.canManage_(u)) {
+    if (Quizzes.canView_(u)) {
       var attemptsBy = {}, accessBy = {};
       Repo.all('quiz_attempts').forEach(function (a) { (attemptsBy[a.quiz_id] = attemptsBy[a.quiz_id] || []).push(a); });
       Repo.all('quiz_accesses').forEach(function (a) { if (!a.revoked_at) accessBy[a.quiz_id] = (accessBy[a.quiz_id] || 0) + 1; });
@@ -54,7 +57,7 @@ var Quizzes = {
           pending_review: at.filter(function (a) { return a.submitted_at && !a.reviewed_at; }).length };
       });
       var have = {}; Repo.all('quizzes').forEach(function (q) { have[q.grade_component_key] = true; });
-      return { mode: 'manage', quizzes: quizzes, can_create: Quizzes.eligible_().some(function (c) { return !have[c.key]; }) };
+      return { mode: 'manage', quizzes: quizzes, can_create: Quizzes.canManage_(u) && Quizzes.eligible_().some(function (c) { return !have[c.key]; }) };
     }
     if (U.isActive(u) && u.role === ROLE.TRAINEE) {
       var out = [], now = U.nowIso();
@@ -89,7 +92,7 @@ var Quizzes = {
   },
   show: function (ctx, p) {
     var quiz = Quizzes.mustFind_(p && p.id), u = ctx.user;
-    if (!Quizzes.canManage_(u)) {
+    if (!Quizzes.canView_(u)) {
       Quizzes.ensureAccess_(u, quiz);
       return Quizzes.take(ctx, p);
     }
@@ -110,7 +113,7 @@ var Quizzes = {
       phase: comp ? comp.label : quiz.grade_component_key, total_points: Quizzes.totalPoints_(quiz.id) },
       questions: Quizzes.questionsOf_(quiz.id).map(function (q) { return Quizzes.questionPayload_(q, true); }),
       accesses: accesses, attempts: attempts, available_trainees: available,
-      can: { manage: true, reset: Authz.allows(u, PERM.QUIZZES_RESET_ATTEMPTS) } };
+      can: { manage: Quizzes.canManage_(u), reset: Authz.allows(u, PERM.QUIZZES_RESET_ATTEMPTS) } };
   },
 
   /* ---------- create / update ---------- */
@@ -229,7 +232,7 @@ var Quizzes = {
 
   /* ---------- access ---------- */
   grant: function (ctx, p) {
-    Quizzes.ensureManager_(ctx.user);
+    Quizzes.ensureViewer_(ctx.user);
     var quiz = Quizzes.mustFind_(p && p.id), t = Repo.find('users', p && p.trainee_id);
     if (!t || t.deleted_at || t.role !== ROLE.TRAINEE || !U.isActive(t)) invalid_('trainee_id', 'Access can only be granted to an active trainee.');
     var acc = Repo.first('quiz_accesses', function (a) { return a.quiz_id === quiz.id && a.trainee_id === t.id; });
@@ -240,7 +243,7 @@ var Quizzes = {
     return {};
   },
   revoke: function (ctx, p) {
-    Quizzes.ensureManager_(ctx.user);
+    Quizzes.ensureViewer_(ctx.user);
     var quiz = Quizzes.mustFind_(p && p.id), acc = Quizzes.activeAccess_(quiz.id, p && p.trainee_id);
     if (!acc) notFound_('That trainee does not have access.');
     Repo.update('quiz_accesses', acc.id, { revoked_at: U.nowIso() });
