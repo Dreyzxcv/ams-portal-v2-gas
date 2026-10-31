@@ -24,9 +24,9 @@ var ROLE_LABELS = {
   admin: 'Admin',
   dean: 'Dean of Medicine',
   deputy_dean: 'Deputy Dean of Medicine',
-  head_admin_clerk: 'Head Administrator Clerk',
+  head_admin_clerk: 'Head Administrative Clerk',
   head_instructor: 'Head Instructor',
-  logistic_officer: 'Administrator Clerk',
+  logistic_officer: 'Administrative Clerk',
   instructor: 'Medical Instructor',
   graduate: 'Graduate',
   trainee: 'Medical Trainee'

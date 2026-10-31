@@ -72,7 +72,6 @@ function renderTraineeDash(t) {
 
 /* ---------- Staff (Dashboard page + NeedsAttention / KpiCard / TrendPanel / ...) ---------- */
 const GROUP_ICON = { Users: 'users', Batches: 'batch', Grades: 'grades', Violations: 'alert', Progress: 'hourglass', Certificates: 'cert' };
-const ACTION_LABELS = { Users: 'Manage users', Batches: 'Batches', Grades: 'Manage grades', Violations: 'Manage violations', Progress: 'Manage progress' };
 const KEY_SPECS = [
   { group: 'Users', label: 'Active users', title: 'Active users', icon: 'users', tone: 'blue' },
   { label: 'Active trainees without a batch', title: 'Trainees without a batch', icon: 'userX', tone: 'amber' },
@@ -105,13 +104,12 @@ function moreFigures(groups) {
   return dpanel('All figures', 'batch', '', '<div class="dg-more">' + shown.map(g => '<div class="figbox"><h3>' + icon(GROUP_ICON[g.title] || 'batch') + h(g.title) + '</h3><dl>' + g.stats.map(s =>
     '<div class="figrow"><dt class="muted">' + (s.href ? dlink(s.href, 'fl', h(s.label)) : h(s.label)) + '</dt><dd>' + h(s.value) + '</dd></div>').join('') + '</dl></div>').join('') + '</div>');
 }
-function quickActions(actions) {
-  return dpanel('Quick actions', 'zap', '', '<nav class="dg-qa" aria-label="Quick actions">' + actions.map((a, i) => dlink(a.href, 'qa' + (i === 0 ? ' primary' : ''), icon(a.icon) + '<span style="flex:1">' + h(a.label) + '</span><span class="chev">' + icon('chevronRight') + '</span>')).join('') + '</nav>');
-}
+/** Batch overview: shows up to 4 batches (open ones first). Finished batches carry a "Done" badge and the reason. */
 function batchOverview(batches, href) {
   const shown = batches.slice(0, 4), extra = batches.length - shown.length, mx = Math.max(1, ...shown.map(b => Number(b.members)));
   return dpanel('Batch overview', 'batch', href ? dlink(href, 'asidelink', 'Manage') : '', batches.length === 0 ? '<p class="muted center" style="padding:0 1.25rem 1.5rem;margin:0;font-size:14px">No batches yet.</p>'
-    : '<ul class="blist">' + shown.map(b => '<li><div class="bh"><span class="bn">' + h(b.name) + '</span><span class="muted bm" aria-label="' + h(b.members) + ' trainees">' + h(b.members) + ' trainees</span></div>' + meterHtml(Number(b.members), mx, 'violet', b.name) + '</li>').join('') + (extra > 0 ? '<li class="muted" style="font-size:12px">+' + extra + ' more batches</li>' : '') + '</ul>');
+    : '<ul class="blist">' + shown.map(b => '<li><div class="bh"><span class="bn">' + h(b.name) + (b.is_done ? ' ' + sBadge('emerald', 'Done') : '') + '</span><span class="muted bm" aria-label="' + h(b.members) + ' trainees">' + h(b.members) + ' trainees</span></div>' + meterHtml(Number(b.members), mx, b.is_done ? 'emerald' : 'violet', b.name) +
+      (b.is_done ? '<div class="muted" style="margin-top:.25rem;font-size:12px">Done: training ended ' + h(fmtD(b.ends_on)) + '. No new trainees.</div>' : '') + '</li>').join('') + (extra > 0 ? '<li class="muted" style="font-size:12px">+' + extra + ' more batches</li>' : '') + '</ul>');
 }
 const SERIES_COLOR = { 'Grades entered': '#10b981', Violations: '#f59e0b' };
 const weekLbl = iso => new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -154,15 +152,14 @@ function renderStaffDash(d) {
   const key = resolveSpecs(d.groups, KEY_SPECS), attention = resolveSpecs(d.groups, ATTN_SPECS);
   key.forEach(k => { k.emphasis = k.stat.label === 'Active trainees without a batch'; });
   const keyIds = new Set(key.map(k => k.group + '|' + k.stat.label)), rest = d.groups.map(g => ({ title: g.title, stats: g.stats.filter(s => !keyIds.has(g.title + '|' + s.label)) }));
-  const actions = d.groups.flatMap(g => { const st = g.stats.find(s => s.href), href = st && st.href; return href && ACTION_LABELS[g.title] ? [{ label: ACTION_LABELS[g.title], href: href.split('?')[0], icon: GROUP_ICON[g.title] || 'batch' }] : []; });
   const bg = d.groups.find(g => g.title === 'Batches'), bst = bg && bg.stats.find(s => s.href), batchesHref = bst ? bst.href : null;
-  const side = actions.length > 0 || d.batches != null, trend = d.trend;
+  const side = d.batches != null, trend = d.trend;
   let body = '<div class="dg">' + heroHtml({ title: State.user.name, subtitle: 'Figures shown are limited to what your role can access.', chips: attention.filter(a => Number(a.stat.value) > 0).map(a => ({ label: a.title, value: a.stat.value, tone: 'amber' })) });
   if (!d.groups.length) body += '<p class="muted" style="margin:0;font-size:14px">Your role has no dashboard figures.</p>';
   if (attention.length) body += needsAttention(attention);
   if (key.length) body += '<h2 class="sect">Key figures</h2><div class="dg dg-kpi">' + key.map(kpiCard).join('') + '</div>';
   if (trend || side) body += '<div class="dg dg-trend">' + (trend ? trendPanel(trend, side, side ? 'span2' : 'span3') : '') +
-    (side ? '<div class="dg ' + (!trend ? 'span3' : '') + '">' + (d.batches != null ? batchOverview(d.batches, batchesHref) : '') + (actions.length ? quickActions(actions) : '') + '</div>' : '') + '</div>';
+    (side ? '<div class="dg ' + (!trend ? 'span3' : '') + '">' + batchOverview(d.batches, batchesHref) + '</div>' : '') + '</div>';
   body += moreFigures(rest);
   if (d.activity) body += activityTable(d.activity);
   return body + '</div>';
@@ -296,16 +293,17 @@ const bpager = m => { if (!m) return ''; const from = m.total ? (m.page - 1) * m
 route('/batches', async (p, q, id) => {
   loadingShell('/batches', '');
   const d = await A('batches.list', { search: q.search, page: q.page }); if (!current(id)) return;
-  const head = '<div class="ghead"><div><h1>Batches</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Manage batches and their trainees</p></div><div class="row" style="gap:.5rem">' +
+  const head = '<div class="ghead"><div><h1>Batches</h1><p class="muted" style="margin:.25rem 0 0;font-size:14px">Manage batches and their trainees. A batch becomes Done after its end date and no longer accepts trainees.</p></div><div class="row" style="gap:.5rem">' +
     '<form data-form="batchSearch" class="row" style="gap:.5rem;flex-wrap:nowrap"><div class="gsearch">' + icon('search') + '<input type="search" name="search" style="width:14rem" placeholder="Search batch name" value="' + h(q.search || '') + '" aria-label="Search batches"></div><button class="btn rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" type="submit">Search</button></form>' +
     (d.can.create ? '<a class="btn primary rx" href="#/batches/create" data-go="/batches/create">' + icon('plus') + 'New batch</a>' : '') + '</div></div>';
-  const rows = d.batches.length === 0 ? '<tr><td colspan="6" class="muted center" style="padding:3rem 1.25rem">No batches found.</td></tr>'
-    : d.batches.map(b => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap">' + chipIcon('batch', 'violet', 'sm') + '<span style="font-weight:500">' + h(b.name) + '</span></div></td>' +
+  const rows = d.batches.length === 0 ? '<tr><td colspan="7" class="muted center" style="padding:3rem 1.25rem">No batches found.</td></tr>'
+    : d.batches.map(b => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap">' + chipIcon('batch', b.is_done ? 'muted' : 'violet', 'sm') + '<span style="font-weight:500">' + h(b.name) + '</span></div></td>' +
+      '<td>' + (b.is_done ? sBadge('emerald', 'Done') + '<div class="muted" style="margin-top:.25rem;font-size:12px">Training ended ' + h(fmtD(b.ends_on)) + '. No new trainees.</div>' : sBadge('sky', 'Open')) + '</td>' +
       '<td class="muted">' + h(b.starts_on || 'Not set') + '</td><td class="muted">' + h(b.ends_on || 'Not set') + '</td>' +
       '<td>' + (b.is_ended ? '<span class="muted">Ended</span>' : b.days_left !== null && b.days_left !== undefined ? '<span style="font-weight:600;font-variant-numeric:tabular-nums">' + h(b.days_left) + '</span>' : '<span class="muted">-</span>') + '</td>' +
       '<td><span style="display:inline-flex;min-width:2rem;justify-content:center;border-radius:9999px;padding:.25rem .625rem;font-size:12px;font-weight:500;background:var(--muted);font-variant-numeric:tabular-nums">' + h(b.trainee_count) + '</span></td>' +
       '<td class="right" style="padding-right:1.25rem"><a class="btn sm rx" href="#/batches/' + h(b.id) + '" data-go="/batches/' + h(b.id) + '">Open</a></td></tr>').join('');
-  const th = '<th style="padding-left:1.25rem">Batch</th><th>Start date</th><th>End date</th><th>Days left</th><th>Trainees</th><th style="padding-right:1.25rem"></th>';
+  const th = '<th style="padding-left:1.25rem">Batch</th><th>Status</th><th>Start date</th><th>End date</th><th>Days left</th><th>Trainees</th><th style="padding-right:1.25rem"></th>';
   mount(shell('/batches', '', '', '<div class="dg">' + head + '<div class="gtab"><div style="overflow-x:auto"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>' + bpager(d.meta) + '</div>', '', 'Batches'));
 });
 Forms.batchSearch = f => setQuery({ search: ($('[name=search]', f).value || '').trim() });
@@ -315,7 +313,7 @@ route('/batches/create', async () => {
   const form = '<div class="dcard" style="padding:1.5rem"><form data-form="batchCreate" novalidate>' +
     bField('Batch name', 'f-name', rxi(input('name', { required: true, max: 100, auto: 'off' }))) +
     bField('Start date (optional)', 'f-starts_on', rxi(input('starts_on', { type: 'date' }))) +
-    bField('End date (optional)', 'f-ends_on', rxi(input('ends_on', { type: 'date' }))) +
+    bField('End date (optional)', 'f-ends_on', rxi(input('ends_on', { type: 'date' })) + '<p class="muted" style="margin:0;font-size:12px">The batch becomes Done the day after this date and stops accepting trainees.</p>') +
     '<div class="row" style="gap:.75rem;padding-top:.25rem"><button class="btn primary rx" type="submit">Create batch</button><a class="btn ghost rx" href="#/batches" data-go="/batches">Cancel</a></div></form></div>';
   mount(shell('/batches', '', '', '<div style="max-width:42rem;margin:0 auto"><div class="dg">' + head + form + '</div></div>', '', [{ t: 'Batches', to: '/batches' }, { t: 'New batch', to: '/batches/create' }]));
   const n = $('#f-name'); if (n) n.focus();
@@ -327,7 +325,9 @@ route('/batches/:id', async (p, q, id) => {
   const d = await A('batches.show', { id: p.id }); if (!current(id)) return;
   const b = d.batch, off = d.can.update ? '' : true;
   const head = '<div class="ghead"><div class="row" style="gap:1rem;flex-wrap:nowrap;min-width:0">' + bTile() + '<div style="min-width:0"><h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(b.name) + '</h1><p class="muted" style="margin:0;font-size:14px">' + d.members.length + ' active ' + (d.members.length === 1 ? 'trainee' : 'trainees') + '</p></div></div>' +
-    '<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#/batches" data-go="/batches">' + icon('arrowLeft') + 'Back to batches</a></div>';
+    '<div class="row" style="gap:.5rem">' + (b.is_done ? sBadge('emerald', 'Done') : '') + '<a class="btn sm rx" style="background:color-mix(in oklab,var(--background) 70%,transparent)" href="#/batches" data-go="/batches">' + icon('arrowLeft') + 'Back to batches</a></div></div>';
+
+  const doneNote = b.is_done ? '<div class="alert info" style="margin:0"><b>Done.</b> Training ended on ' + h(fmtD(b.ends_on)) + ', so this batch no longer accepts new trainees. Assign new trainees to a newer batch. Trainees already here stay as history and can be removed or moved. To reopen this batch, change its end date to a later day.</div>' : '';
 
   const details = '<section class="dcard"><header style="padding:1rem 1.25rem .75rem"><h2>Details</h2></header><form data-form="batchEdit" data-id="' + h(b.id) + '" style="padding:0 1.25rem 1.25rem" novalidate>' +
     bField('Batch name', 'f-name', rxi(input('name', { value: b.name, required: true, max: 100, disabled: off }))) +
@@ -335,11 +335,12 @@ route('/batches/:id', async (p, q, id) => {
     bField('End date', 'f-ends_on', rxi(input('ends_on', { type: 'date', value: b.ends_on || '', disabled: off }))) +
     (d.can.update ? '<button class="btn primary rx" type="submit">Save changes</button>' : '') + '</form></section>';
 
-  const assign = d.can.assign ? '<div style="background:color-mix(in oklab,var(--muted) 40%,transparent);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1rem 1.25rem">' +
+  const assign = d.can.add ? '<div style="background:color-mix(in oklab,var(--muted) 40%,transparent);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1rem 1.25rem">' +
     '<form data-form="batchAssign" data-id="' + h(b.id) + '" class="row" style="align-items:flex-end;gap:.75rem" novalidate><div style="display:grid;gap:.5rem;min-width:16rem;flex:1"><label for="f-user_id" style="margin:0">Add trainee</label>' +
     '<select class="rx" name="user_id" id="f-user_id" required><option value="" disabled selected>Select a trainee</option>' + d.available.map(a => '<option value="' + h(a.id) + '">' + h(a.name) + ' (' + h(a.username) + ')' + (a.current_batch ? ' - currently in ' + h(a.current_batch) : '') + '</option>').join('') + '</select></div>' +
     '<button class="btn primary rx" type="submit">' + icon('userPlus') + 'Assign</button></form>' +
-    '<p class="muted" style="margin:.5rem 0 0;font-size:12px">Choosing a trainee who is already in another batch moves them to this one.</p></div>' : '';
+    '<p class="muted" style="margin:.5rem 0 0;font-size:12px">Choosing a trainee who is already in another batch moves them to this one.</p></div>'
+    : (d.can.assign && b.is_done ? '<div style="background:color-mix(in oklab,var(--muted) 40%,transparent);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1rem 1.25rem"><p class="muted" style="margin:0;font-size:14px">Adding trainees is disabled because this batch is Done.</p></div>' : '');
 
   const mrows = d.members.length === 0 ? '<tr><td colspan="3" class="muted center" style="padding:3rem 1.25rem">No trainees in this batch yet.</td></tr>'
     : d.members.map(m => '<tr><td style="padding-left:1.25rem"><div class="row" style="gap:.75rem;flex-wrap:nowrap"><span class="gini" aria-hidden="true">' + h(initials(m.name)) + '</span><div style="min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + h(m.name) + '</div><div class="muted" style="font-size:12px">@' + h(m.username) + '</div></div></div></td>' +
@@ -352,7 +353,7 @@ route('/batches/:id', async (p, q, id) => {
     '<div class="row" style="gap:.75rem;align-items:flex-start;flex-wrap:nowrap">' + chipIcon('trash', 'rose', 'sm') + '<div><h2>Delete batch</h2><p class="muted" style="margin:0;font-size:14px">Only possible when the batch has no active trainees. Past assignment history is kept.</p></div></div>' +
     '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem"><button type="button" class="btn danger solid rx" data-act="batchDelete" data-id="' + h(b.id) + '" data-name="' + h(b.name) + '">Delete batch</button><div class="err" id="batch-err" style="margin:0"></div></div></section>' : '';
 
-  mount(shell('/batches', '', '', '<div class="dg">' + head + '<div class="dg dg-trend">' + details + trainees + '</div>' + del + '</div>', '', [{ t: 'Batches', to: '/batches' }, { t: 'Batch', to: '/batches' }]));
+  mount(shell('/batches', '', '', '<div class="dg">' + head + doneNote + '<div class="dg dg-trend">' + details + trainees + '</div>' + del + '</div>', '', [{ t: 'Batches', to: '/batches' }, { t: 'Batch', to: '/batches' }]));
 });
 Forms.batchEdit = async f => { const v = formVals(f); v.id = f.dataset.id; await submitForm(f, 'batches.update', v, () => go(State.path, false, true)); };
 Forms.batchAssign = async f => { await submitForm(f, 'batches.assign', { id: f.dataset.id, user_id: formVals(f).user_id }, () => go(State.path, false, true)); };

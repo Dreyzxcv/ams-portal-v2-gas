@@ -51,7 +51,10 @@ var Dashboard = {
     var batchList = null;
     if (Authz.allows(u, PERM.BATCHES_VIEW)) {
       var counts = {}; activeAs.forEach(function (a) { counts[a.batch_id] = (counts[a.batch_id] || 0) + 1; });
-      batchList = batches.slice().sort(function (a, b) { return U.cmp(b.created_at, a.created_at) || U.cmp(b.id, a.id); }).map(function (b) { return { id: b.id, name: b.name, members: counts[b.id] || 0 }; });
+      // Open batches first (newest first), Done batches after them, so the 4 shown on the dashboard are the useful ones.
+      batchList = batches.slice().sort(function (a, b) {
+        return (Batches.isDone(a) ? 1 : 0) - (Batches.isDone(b) ? 1 : 0) || U.cmp(b.created_at, a.created_at) || U.cmp(b.id, a.id);
+      }).map(function (b) { return { id: b.id, name: b.name, members: counts[b.id] || 0, is_done: Batches.isDone(b), ends_on: b.ends_on }; });
     }
     return { mode: 'staff', batches: batchList, groups: groups, activity: activity, trainee: null, trend: Dashboard.trend_(u) };
   },

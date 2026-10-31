@@ -16,8 +16,60 @@ var Announcements = {
       is_published: !!a.published_at, is_pinned: !!a.pinned_at, published_label: U.label(a.published_at), author: au ? au.name : null,
       discord_status: a.discord_status || DISCORD.NOT_SENT, discord_error: a.discord_error, discord_sent_label: U.label(a.discord_sent_at) };
   },
+
+  /**
+   * Portal display only: turns Discord markup into clean plain text. The stored text and the Discord post are NOT changed.
+   * - <@id> / <@&id>      -> @name (reverse of DISCORD_MENTIONS), unknown ids are removed
+   * - [label](https://..) -> [label] (the URL is hidden)
+   * - <:name:id>          -> removed (real Discord custom emoji)
+   * - :emoji: (only the ones listed in DISCORD_EMOJIS) and the "|" separator after it -> removed
+   * - leading "-# "       -> removed (Discord small text)
+   * - **bold**, __underline__, ~~strike~~, ||spoiler||, *italic* -> markers removed, text kept
+   */
+  plain_: function (text) {
+    if (text === null || text === undefined) return text;
+    var s = String(text), map = {}, em = {};
+    try { map = JSON.parse(Config.get('DISCORD_MENTIONS') || '{}'); } catch (e) { map = {}; }
+    try { em = JSON.parse(Config.get('DISCORD_EMOJIS') || '{}'); } catch (e) { em = {}; }
+
+    // mentions: id -> first configured name
+    var byId = {};
+    Object.keys(map).forEach(function (name) { var id = String(map[name]); if (byId[id] === undefined) byId[id] = name; });
+    s = s.replace(/<@(&?)(\d+)>/g, function (m, role, id) {
+      var name = byId[role + id];
+      return name ? '@' + name : '';
+    });
+
+    // markdown links: [IMAGE](https://...) -> [IMAGE] (done before the markdown pass so underscores in URLs are never touched)
+    s = s.replace(/(\[[^\]\n]*\])\(\s*<?https?:\/\/[^\s)>]+>?\s*\)/g, '$1');
+
+    // custom emoji written the Discord way: <:name:123> / <a:name:123>
+    s = s.replace(/<a?:\w+:\d+>/g, '');
+
+    // small text marker at the start of a line
+    s = s.replace(/^[ \t]*-#[ \t]?/gm, '');
+
+    // configured :emoji: tokens, plus the optional " | " that follows them
+    Object.keys(em).forEach(function (k) {
+      var safe = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      s = s.replace(new RegExp(':' + safe + ':[ \\t]*(?:\\|[ \\t]*)?', 'g'), '');
+    });
+
+    // markdown markers (keep the text inside)
+    s = s.replace(/\|\|([\s\S]+?)\|\|/g, '$1')
+      .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
+      .replace(/__([\s\S]+?)__/g, '$1')
+      .replace(/~~([\s\S]+?)~~/g, '$1')
+      .replace(/\*([^*\n]+)\*/g, '$1');
+
+    // tidy spacing left behind
+    s = s.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+    return s;
+  },
+
   publicArray_: function (a) {
-    return { id: a.id, recipient: a.recipient, sender: a.sender, subject: a.subject, body: a.body, signature: a.signature,
+    return { id: a.id, recipient: Announcements.plain_(a.recipient), sender: Announcements.plain_(a.sender), subject: Announcements.plain_(a.subject),
+      body: Announcements.plain_(a.body), signature: Announcements.plain_(a.signature),
       published_label: U.label(a.published_at), is_pinned: !!a.pinned_at };
   },
   forPublic_: function () {

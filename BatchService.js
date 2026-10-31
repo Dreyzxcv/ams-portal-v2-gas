@@ -11,6 +11,8 @@ var Batches = {
     return Math.max(0, U.daysBetween(U.today(), b.ends_on));
   },
   hasEnded: function (b) { return !!(b && b.ends_on && b.ends_on < U.today()); },
+  /** A batch is Done the day AFTER its end date. No end date = never Done. */
+  isDone: function (b) { return Batches.hasEnded(b); },
   activeAssignments_: function (batchId) {
     return Repo.where('batch_assignments', function (a) { return !a.unassigned_at && (!batchId || a.batch_id === batchId); });
   },
@@ -42,19 +44,22 @@ var Batches = {
       .sort(function (a, b) { return U.cmp(b.starts_on || '', a.starts_on || '') || U.cmp(a.name, b.name); });
     var pg = paginate_(rows, p.page);
     return { batches: pg.data.map(function (b) {
-      return { id: b.id, name: b.name, starts_on: b.starts_on, ends_on: b.ends_on, days_left: Batches.daysLeft(b), is_ended: Batches.hasEnded(b), trainee_count: counts[b.id] || 0 };
+      return { id: b.id, name: b.name, starts_on: b.starts_on, ends_on: b.ends_on, days_left: Batches.daysLeft(b), is_ended: Batches.hasEnded(b),
+        is_done: Batches.isDone(b), trainee_count: counts[b.id] || 0 };
     }), meta: pg.meta, filters: { search: search }, can: { create: Authz.allows(ctx.user, PERM.BATCHES_MANAGE) } };
   },
   show: function (ctx, p) {
     var b = Batches.mustFind_(p && p.id);
     if (!Batches.canView_(ctx.user, b)) forbidden_();
+    var done = Batches.isDone(b);
     var canAssign = Authz.allows(ctx.user, PERM.BATCHES_MANAGE), users = Repo.index('users', 'id');
     var members = Batches.activeAssignments_(b.id).sort(function (a, c) { return U.cmp(a.assigned_at, c.assigned_at); }).map(function (a) {
       var u = users[a.user_id] || {};
       return { id: a.id, user_id: a.user_id, name: u.name, username: u.username, assigned_at: a.assigned_at };
     });
     var available = [];
-    if (canAssign) {
+    // A Done batch accepts no new trainees, so the picker is empty.
+    if (canAssign && !done) {
       var batchNames = Repo.index('batches', 'id'), current = {};
       Batches.activeAssignments_().forEach(function (a) { current[a.user_id] = a; });
       available = Users.live_().filter(function (u) { return u.role === ROLE.TRAINEE && u.status === USER_STATUS.ACTIVE && !(current[u.id] && current[u.id].batch_id === b.id); })
@@ -63,8 +68,8 @@ var Batches = {
           return { id: u.id, name: u.name, username: u.username, current_batch: cur && batchNames[cur.batch_id] ? batchNames[cur.batch_id].name : null };
         });
     }
-    return { batch: { id: b.id, name: b.name, starts_on: b.starts_on, ends_on: b.ends_on, days_left: Batches.daysLeft(b), is_ended: Batches.hasEnded(b) }, members: members, available: available,
-      can: { update: canAssign, 'delete': canAssign, assign: canAssign } };
+    return { batch: { id: b.id, name: b.name, starts_on: b.starts_on, ends_on: b.ends_on, days_left: Batches.daysLeft(b), is_ended: Batches.hasEnded(b), is_done: done }, members: members, available: available,
+      can: { update: canAssign, 'delete': canAssign, assign: canAssign, add: canAssign && !done } };
   },
   create: function (ctx, p) {
     Authz.require(ctx.user, PERM.BATCHES_MANAGE);
@@ -93,6 +98,8 @@ var Batches = {
   assign: function (ctx, p) {
     Authz.require(ctx.user, PERM.BATCHES_MANAGE);
     var b = Batches.mustFind_(p && p.id), v = validate_(p, { user_id: { required: true, max: 64 } });
+    // Done batches (end date passed) cannot receive trainees. Enforced here, not only in the UI.
+    if (Batches.isDone(b)) invalid_('user_id', 'This batch is Done (training ended on ' + b.ends_on + '). Assign the trainee to a newer batch.');
     var t = Repo.find('users', v.user_id);
     if (!t || t.deleted_at) invalid_('user_id', 'The selected trainee is invalid.');
     if (t.role !== ROLE.TRAINEE || !U.isActive(t)) invalid_('user_id', 'Only active trainees can be assigned to a batch.');
